@@ -9,7 +9,57 @@
 import SwiftUI
 import UIKit
 
+let MaxLoop:Int = 1024
+
+
+class MasPic {
+    func makeColor(z:Int) -> UIColor{
+        let h = Double(z % 32) / 32.0
+        return(UIColor(hue: CGFloat(h), saturation: 1.0, brightness: 1.0, alpha: 1.0))
+    }
+    var X0,Y0,X1,Y1:Double
+    var Scale:Double
+    var WX,WY:Int
+    var image:UIImage? = nil
+    init(x:Double,y:Double,scale:Double,wx:Int,wy:Int, completion:@escaping (MasPic)->()){
+        X0 = x - Double(wx) / 2 * scale
+        Y0 = y + Double(wy) / 2 * scale
+        X1 = x + Double(wx) / 2 * scale
+        Y1 = y - Double(wy) / 2 * scale
+        let s = UIScreen.main.scale // Retina display scale is encapsulated in this class
+        Scale = scale / Double(s)
+        WX = Int(CGFloat(wx) * s)
+        WY = Int(CGFloat(wx) * s)
+        DispatchQueue.global(qos: .background).async {
+            let ir = UIGraphicsImageRenderer(size: CGSize(width: self.WX, height: self.WY))
+            self.image = ir.image{ctx in
+                for y in 0..<self.WY {
+                    for x in 0..<self.WX{
+                        let c_r = self.X0 + Double(x) * self.Scale
+                        let c_i = self.Y0 - Double(y) * self.Scale
+                        var z_r = c_r
+                        var z_i = c_i
+                        for z in 1..<MaxLoop{
+                            let zr2 = z_r*z_r
+                            let zi2 = z_i*z_i
+                            if zr2+zi2 > 4.0 {
+                                self.makeColor(z: z).setFill()
+                                ctx.fill(CGRect(x: x, y: y, width: 1, height: 1))
+                                break
+                            }
+                            z_r = z_r*z_r - z_i*z_i + c_r
+                            z_i = 2*z_r*z_i + c_i
+                        }
+                    }
+                }
+            }
+            completion(self)
+        }
+    }
+}
+
 class ZoomView: UIView {
+    
     enum CanvasTouchState{
         case
         NoTouch,
