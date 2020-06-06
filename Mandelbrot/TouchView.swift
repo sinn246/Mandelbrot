@@ -47,7 +47,7 @@ class MasPic {
                                 ctx.fill(CGRect(x: x, y: y, width: 1, height: 1))
                                 break
                             }
-                            z_r = z_r*z_r - z_i*z_i + c_r
+                            z_r = zr2 - zi2 + c_r
                             z_i = 2*z_r*z_i + c_i
                         }
                     }
@@ -74,54 +74,13 @@ class ZoomView: UIView {
     var ZOOM_MIN:CGFloat = 1.0
     let BORDER_MAX:CGFloat = 80
     
-    var picSize: CGSize = CGSize()
-    var picCenter:CGPoint = CGPoint()
-    var picCenterBeforeMove = CGPoint()
-    var picZoom:CGFloat = 1.0 // screen 1-px = pic picZoom-px
-    var picZoomBeforeMove:CGFloat = 1.0
-    
-    var picLayer: CALayer
-    var gridLayer: CALayer
-    var cornerLayers: [CALayer] = []
-    var resultLayer:CALayer
-    let markerSize:CGFloat = 6.0
-    
-    var theImage:UIImage? = nil
-    var clippedImage:UIImage? = nil
+    var picLayers: [CALayer] = []
 
     var presentState:CanvasTouchState = .NoTouch
     var timeInitial:TimeInterval = 0
-    var circleImage:UIImage? = nil
-
-    let corners = UnsafeMutablePointer<CGFloat>.allocate(capacity: 8)
-
-    deinit {
-        corners.deallocate()
-    }
     
     required override init(frame F: CGRect) {
-        picLayer = CALayer()
-        gridLayer = CALayer()
-        resultLayer = CALayer()
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width:16,height:16))
-        super.init(frame: F)
-
         layer.insertSublayer(picLayer, at: 0)
-        layer.insertSublayer(gridLayer, at: 1)
-        layer.insertSublayer(resultLayer, at: 2)
-        circleImage = renderer.image(actions: {rc in
-            let ctx = rc.cgContext
-            ctx.setFillColor(UIColor.green.cgColor)
-            ctx.fillEllipse(in: CGRect(x:0, y:0, width:markerSize*2, height:markerSize*2))
-        })
-        for i in 0...3{
-            let aCorner = CALayer()
-            aCorner.contents = circleImage?.cgImage
-            aCorner.frame = CGRect(x:-markerSize*2,y:-markerSize*2,
-                                   width: markerSize*2,height: markerSize*2)
-            cornerLayers.append(aCorner)
-            layer.insertSublayer(aCorner, at: UInt32(3+i))
-        }
     }
     
     required init?(coder: NSCoder) {
