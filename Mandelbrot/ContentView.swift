@@ -10,29 +10,28 @@ import SwiftUI
 
 
 struct XY0View: View{
-    @EnvironmentObject var m:Mandel
+    @EnvironmentObject var u:Updater
     var body: some View{
-        Text("(\(m.X-m.Scale*Double(m.WX)/2),\(m.Y+m.Scale*Double(m.WY)/2))")
+        Text("(\(mas.X-mas.Scale*Double(mas.WX)/2),\(mas.Y+mas.Scale*Double(mas.WY)/2))")
     }
 }
 
 struct XY1View: View{
-    @EnvironmentObject var m:Mandel
+    @EnvironmentObject var u:Updater
     var body: some View{
-        Text("(\(m.X+m.Scale*Double(m.WX)/2),\(m.Y-m.Scale*Double(m.WY)/2))")
+        Text("(\(mas.X+mas.Scale*Double(mas.WX)/2),\(mas.Y-mas.Scale*Double(mas.WY)/2))")
     }
 }
 
 struct ContentView: View {
-    @EnvironmentObject var m:Mandel
-//    @State private var imageUpdated:Bool = false
     var body: some View {
         ZStack{
             GeometryReader{ geo -> TouchView in
                 print("******", geo.size)
-                self.m.WX = geo.size.width
-                self.m.WY = geo.size.height
-                return(TouchView())
+                mas.WX = geo.size.width
+                mas.WY = geo.size.height
+                let tv = TouchView()
+                return(tv)
             }
             VStack{
                 HStack{

@@ -9,10 +9,18 @@
 import SwiftUI
 import Combine
 
-final class Mandel : ObservableObject {
+struct Global{
     var X:Double = 0
     var Y:Double = 0
     var WX:CGFloat = 480
     var WY:CGFloat = 640
-    @Published var Scale:Double = 4.0 / 480.0
+    var Scale:Double = 4.0 / 480.0
 }
+
+var mas:Global = Global()
+
+final class Updater : ObservableObject {
+    @Published var update:Bool = false
+}
+var updater:Updater = Updater()
+

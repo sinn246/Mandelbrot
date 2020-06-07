@@ -9,7 +9,8 @@
 import SwiftUI
 import UIKit
 
-let MaxLoop:Int = 1024
+let maxLoop:Int = 1000
+let startLoop:Int = 100
 
 
 class MasPic {
@@ -20,41 +21,29 @@ class MasPic {
     var X0,Y0,X1,Y1:Double
     var Scale:Double
     var WX,WY:Int
-    var image:UIImage? = nil
-    init(x:Double,y:Double,scale:Double,wx:Int,wy:Int, completion:@escaping (MasPic)->()){
+    var image:CGImage? = nil
+    var stop:Bool = false
+    init(x:Double,y:Double,scale:Double,wx:CGFloat,wy:CGFloat,WZ:Int,update:@escaping (MasPic)->()){
         X0 = x - Double(wx) / 2 * scale
         Y0 = y + Double(wy) / 2 * scale
         X1 = x + Double(wx) / 2 * scale
         Y1 = y - Double(wy) / 2 * scale
         let s = UIScreen.main.scale // Retina display scale is encapsulated in this class
         Scale = scale / Double(s)
-        WX = Int(CGFloat(wx) * s)
-        WY = Int(CGFloat(wx) * s)
+        WX = Int(wx * s)
+        WY = Int(wy * s)
         DispatchQueue.global(qos: .background).async {
-            let ir = UIGraphicsImageRenderer(size: CGSize(width: self.WX, height: self.WY))
-            self.image = ir.image{ctx in
-                for y in 0..<self.WY {
-                    for x in 0..<self.WX{
-                        let c_r = self.X0 + Double(x) * self.Scale
-                        let c_i = self.Y0 - Double(y) * self.Scale
-                        var z_r = c_r
-                        var z_i = c_i
-                        for z in 1..<MaxLoop{
-                            let zr2 = z_r*z_r
-                            let zi2 = z_i*z_i
-                            if zr2+zi2 > 4.0 {
-                                self.makeColor(z: z).setFill()
-                                ctx.fill(CGRect(x: x, y: y, width: 1, height: 1))
-                                break
-                            }
-                            z_r = zr2 - zi2 + c_r
-                            z_i = 2*z_r*z_i + c_i
-                        }
-                    }
+            calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
+                if !self.stop{
+                    self.image = img
+                    update(self)
                 }
-            }
-            completion(self)
+                return(self.stop)
+            })
         }
+    }
+    convenience init(WZ:Int,update:@escaping (MasPic)->()){
+        self.init(x:mas.X,y:mas.Y,scale:mas.Scale,wx:mas.WX,wy:mas.WY,WZ:WZ,update:update)
     }
 }
 
@@ -66,87 +55,86 @@ class ZoomView: UIView {
         FirstTouch,
         Dragging,
         SecondTouch,
-        Moving,
+        Zooming,
         TooManyTouches
     }
-    /// const
-    var ZOOM_MAX:CGFloat = 8.0
-    var ZOOM_MIN:CGFloat = 1.0
-    let BORDER_MAX:CGFloat = 80
-    
-    var picLayers: [CALayer] = []
-
     var presentState:CanvasTouchState = .NoTouch
     var timeInitial:TimeInterval = 0
     
-    required override init(frame F: CGRect) {
-        layer.insertSublayer(picLayer, at: 0)
-    }
+    /// const
+    var Scale_MAX:Double = 8.0
+    var Scale_MIN:Double = 1.0
     
+    var pics:[(pic:MasPic,layer:CALayer)] = []
+    var mainPic:MasPic? = nil
+    var mainLayer = CALayer()
+    var initialstate:Bool = true
+    
+    init(){
+        super.init(frame:CGRect.null)
+    }
+    /*    required override init(frame F: CGRect) {
+     super.init(frame:F)
+     }
+     */
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    var ActiveRect:CGRect = CGRect()
     
-    func setBGimage(image: UIImage){
-        ActiveRect = frame
-        if frame.size.height > frame.size.width{
-            let w = (frame.size.height - frame.size.width) / 2
-            ActiveRect.origin.y = w
-            ActiveRect.size.height -= w*2
-        }else{
-            let w = (frame.size.width - frame.size.height) / 2
-            ActiveRect.origin.x = w
-            ActiveRect.size.width -= w*2
+    func SizeChanged(){
+        Scale_MAX = 4.0 / Double(min(mas.WX,mas.WY))
+        Scale_MIN = Double.ulpOfOne * 100
+        for l in pics{
+            l.layer.removeFromSuperlayer()
+            l.pic.stop = true
         }
+        pics = []
         
-        theImage = image
-        picSize = image.size
-        picLayer.contents = theImage?.cgImage
+        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
+            DispatchQueue.main.async {
+                self.mainLayer.contents = mp.image!
+                self.setNeedsDisplay()
+            }
+        })
+        mainLayer.frame = UIRect(from: mainPic!)
+        layer.addSublayer(mainLayer)
         
-        picCenter.x = CGFloat(Double(picSize.width) / 2.0)
-        picCenter.y = CGFloat(Double(picSize.height) / 2.0)
-        picZoom  = max(picSize.width / frame.size.width, picSize.height / frame.size.height)
-        ZOOM_MAX = min(picSize.width  / ActiveRect.width, picSize.height / ActiveRect.height)
-        if picZoom > ZOOM_MAX {
-            picZoom = ZOOM_MAX
+        if initialstate{
+            mas.Scale = Scale_MAX
         }
-        ZOOM_MIN = 1.0
-        if ZOOM_MAX < ZOOM_MIN {
-            ZOOM_MIN = ZOOM_MAX / 2
-        }
-        let gridRenderer = UIGraphicsImageRenderer(size: frame.size)
-        gridLayer.contents = gridRenderer.image(actions: {rc in
-            let ctx = rc.cgContext
-            ctx.setFillColor(UIColor.black.withAlphaComponent(0.2).cgColor)
-            ctx.fill(frame)
-            ctx.clear(ActiveRect)
-        }).cgImage
-        gridLayer.frame = frame
-        resultLayer.frame = ActiveRect
-        updateFrame(find: true)
+        updateFrame(fix: true, scale: mas.Scale)
     }
-
     
-    func UI2Pic(point:CGPoint)->CGPoint{
+    func UIRect(from:MasPic)->CGRect{
+        let p0 = Pic2UI(CGPoint(x:from.X0,y:from.Y0))
+        let p1 = Pic2UI(CGPoint(x:from.X1,y:from.Y1))
+        return(CGRect(origin: p0,
+                      size: CGSize(width: p1.x - p0.x, height: p1.y - p0.y)))
+    }
+    
+    func UI2Pic(_ point:CGPoint)->CGPoint{
         return CGPoint(
-            x: picCenter.x - frame.size.width / CGFloat(2) * picZoom + point.x * picZoom,
-            y: picCenter.y - frame.size.height / CGFloat(2) * picZoom + point.y * picZoom
+            x: mas.X + (Double(point.x) - Double(mas.WX)/2.0) * mas.Scale,
+            y: mas.Y - (Double(point.y) - Double(mas.WY)/2.0) * mas.Scale
         )
     }
-    func Pic2UI(point:CGPoint)->CGPoint{
+    func Pic2UI(_ point:CGPoint)->CGPoint{
         return CGPoint(
-            x: (point.x - picCenter.x) / picZoom + frame.size.width / CGFloat(2) ,
-            y: (point.y - picCenter.y) / picZoom + frame.size.height / CGFloat(2)
+            x: (Double(point.x) - mas.X) / mas.Scale + Double(mas.WX) / 2.0 ,
+            y: -(Double(point.y) - mas.Y) / mas.Scale + Double(mas.WY) / 2.0
         )
     }
+    
+    
+    var scaleBeforeMove:Double = 1.0
     var D2_start:CGFloat = 0;
-    var center_start:CGPoint = CGPoint()
-    var cs_pic :CGPoint = CGPoint()
-
+    var UIcenter_start:CGPoint = CGPoint()
+    var PICcenter_start:CGPoint = CGPoint()
+    var X_start:Double = 0
+    var Y_start:Double = 0
+    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        resultLayer.isHidden = true;
         let nTouch = event?.allTouches?.count
         if nTouch == 1{
             presentState = .FirstTouch
@@ -159,29 +147,45 @@ class ZoomView: UIView {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         let nTouch = event?.allTouches?.count
         if nTouch == 1 {
-            let arr = Array(event!.allTouches!)
-            let p1 = arr[0].previousLocation(in: self)
+            let t1 = event!.allTouches!.first!
             if presentState != .Dragging{
                 presentState = .Dragging
-                picZoomBeforeMove = picZoom
-                picCenterBeforeMove = picCenter
-                center_start = p1
-                cs_pic = UI2Pic(point: center_start)
+                scaleBeforeMove = mas.Scale
+                UIcenter_start = t1.previousLocation(in: self)
+                X_start = mas.X
+                Y_start = mas.Y
             }
-            moveByTouch(center:p1)
+            let p = t1.location(in: self)
+            mas.X = X_start + Double(UIcenter_start.x - p.x) * mas.Scale
+            mas.Y = Y_start - Double(UIcenter_start.y - p.y) * mas.Scale
+            updateFrame(fix:false,scale:mas.Scale)
+            
         }else if nTouch == 2{
             let arr = Array(event!.allTouches!)
-            if presentState != .Moving{
-                presentState = .Moving
-                picZoomBeforeMove = picZoom
-                picCenterBeforeMove = picCenter
+            if presentState != .Zooming{
+                presentState = .Zooming
+                scaleBeforeMove = mas.Scale
                 let p1 = arr[0].previousLocation(in: self)
                 let p2 = arr[1].previousLocation(in: self)
                 D2_start = (p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y)
-                center_start = CGPoint(x:Double(p1.x + p2.x)/2, y: Double(p1.y + p2.y)/2)
-                cs_pic = UI2Pic(point: center_start)
+                UIcenter_start = CGPoint(x:Double(p1.x + p2.x)/2, y: Double(p1.y + p2.y)/2)
+                PICcenter_start = UI2Pic(UIcenter_start)
             }
-            moveByTouches(arr: arr)
+            let p0 = arr[0].location(in: self)
+            let p1 = arr[1].location(in: self)
+            let D2:CGFloat = (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y)
+            let center:CGPoint = CGPoint(x:(p1.x+p0.x)/CGFloat(2),y:(p1.y+p0.y)/CGFloat(2))
+            var factor = Double(D2_start / D2);
+            var scale = scaleBeforeMove * factor
+            if scale < Scale_MIN { scale = Scale_MIN }
+            if scale > Scale_MAX { scale = Scale_MAX }
+            factor = scale / scaleBeforeMove
+            let dx = Double(UIcenter_start.x -  center.x )
+            let dy = Double(UIcenter_start.y -  center.y )
+            
+            mas.X = X_start + dx * scale - (Double(PICcenter_start.x) - X_start) * (factor - 1)
+            mas.Y = Y_start - dy * scale - (Double(PICcenter_start.y) - Y_start) * (factor - 1)
+            updateFrame(fix:false,scale:scale)
         }
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -189,8 +193,9 @@ class ZoomView: UIView {
     }
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         switch presentState{
-        case .Moving,.Dragging:
-            updateFrame(find:true)
+        case .Zooming,.Dragging:
+            initialstate = false
+            updateFrame(fix:true,scale: mas.Scale)
         default:
             break
         }
@@ -198,100 +203,73 @@ class ZoomView: UIView {
     }
     
     
-    func updateFrame(find:Bool){
-        let p1 = Pic2UI(point: CGPoint.zero)
-        let p2 = Pic2UI(point: CGPoint(x:picSize.width,y:picSize.height))
-        let r = CGRect(origin: p1, size: CGSize(width: p2.x - p1.x, height: p2.y-p1.y))
-        picLayer.frame = r
+    func updateFrame(fix:Bool,scale:Double){
+        var scale = scale
+        if fix{
+            if scale < Scale_MIN {
+                scale = Scale_MIN
+            }
+            if scale > Scale_MAX {
+                scale = Scale_MAX
+            }
+            let p0 = UI2Pic(CGPoint.zero)
+            let p1 = UI2Pic(CGPoint(x:mas.WX,y:mas.WY))
+            if p0.x < -CGFloat(Scale_MAX)*mas.WX/2 {
+                mas.X += Double(-CGFloat(Scale_MAX)*mas.WX/2-p0.x)
+            }
+            if p1.x > CGFloat(Scale_MAX)*mas.WX/2 {
+                mas.X += Double(CGFloat(Scale_MAX)*mas.WX/2-p1.x)
+            }
+            if p0.y > CGFloat(Scale_MAX)*mas.WY/2 {
+                mas.Y += Double(CGFloat(Scale_MAX)*mas.WY/2-p0.y)
+            }
+            if p1.y < -CGFloat(Scale_MAX)*mas.WY/2 {
+                mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
+            }
+            if scale >= mas.Scale{
+                if let l = pics.last{
+                    l.layer.removeFromSuperlayer()
+                    l.pic.stop = true
+                    pics.removeLast()
+                }
+            }
+            let l = CALayer()
+            let mp = MasPic(WZ: maxLoop, update: { p in
+                DispatchQueue.main.async{
+                    l.contents = p.image!
+                    self.setNeedsDisplay()
+                }
+            })
+//            l.frame = UIRect(from: mp)
+            layer.addSublayer(l)
+            pics.append((pic:mp,layer:l))
+            
+        }
+        if let mp = mainPic{
+            mainLayer.frame = UIRect(from: mp)
+            print("main:\(UIRect(from: mp))")
+            for p in pics{
+                p.layer.frame = UIRect(from: p.pic)
+                print("sub:\(UIRect(from: p.pic))")
+            }
+        }
+        mas.Scale = scale
+        updater.update.toggle()
     }
-    
-    func moveByTouch(center:CGPoint){
-        let dx = (center_start.x -  center.x )
-        let dy = (center_start.y -  center.y )
-        
-        picCenter.x = picCenterBeforeMove.x + dx * picZoom //- (cs_pic.x - picCenterBeforeMove.x)
-        picCenter.y = picCenterBeforeMove.y + dy * picZoom //- (cs_pic.y - picCenterBeforeMove.y)
-        
-        if ActiveRect.minX < (0 - picCenter.x) / picZoom + frame.size.width / CGFloat(2){
-            picCenter.x = ( frame.size.width / CGFloat(2) - ActiveRect.minX ) * picZoom
-        }
-        if ActiveRect.minY <  (0 - picCenter.y) / picZoom + frame.size.height / CGFloat(2){
-            picCenter.y = ( frame.size.height / CGFloat(2) - ActiveRect.minY ) * picZoom
-        }
-        if ActiveRect.maxX > (picSize.width - picCenter.x) / picZoom + frame.size.width / CGFloat(2){
-            picCenter.x = ( frame.size.width / CGFloat(2) - ActiveRect.maxX ) * picZoom + picSize.width
-        }
-        if ActiveRect.maxY >  (picSize.height - picCenter.y) / picZoom + frame.size.height / CGFloat(2){
-            picCenter.y = ( frame.size.height / CGFloat(2) - ActiveRect.maxY ) * picZoom + picSize.height
-        }
-        //        applyMagnetConstraints()
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        updateFrame(find:false)
-        CATransaction.commit()
-    }
-
-
-    func moveByTouches(arr:Array<UITouch>){
-        let p0 = arr[0].location(in: self)
-        let p1 = arr[1].location(in: self)
-        let D2:CGFloat = (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y)
-        let center:CGPoint = CGPoint(x:(p1.x+p0.x)/CGFloat(2),y:(p1.y+p0.y)/CGFloat(2))
-        
-        var factor = D2_start / D2;
-        
-        picZoom = picZoomBeforeMove * factor
-        if picZoom > ZOOM_MAX { picZoom = ZOOM_MAX }
-        if picZoom < ZOOM_MIN { picZoom = ZOOM_MIN }
-        factor = picZoom / picZoomBeforeMove
-        
-        let dx = (center_start.x -  center.x )
-        let dy = (center_start.y -  center.y )
-        
-        picCenter.x = picCenterBeforeMove.x + dx * picZoom - (cs_pic.x - picCenterBeforeMove.x) * (factor - 1)
-        picCenter.y = picCenterBeforeMove.y + dy * picZoom - (cs_pic.y - picCenterBeforeMove.y) * (factor - 1)
-        
-        if ActiveRect.minX < (0 - picCenter.x) / picZoom + frame.size.width / CGFloat(2){
-            picCenter.x = ( frame.size.width / CGFloat(2) - ActiveRect.minX ) * picZoom
-        }
-        if ActiveRect.minY <  (0 - picCenter.y) / picZoom + frame.size.height / CGFloat(2){
-            picCenter.y = ( frame.size.height / CGFloat(2) - ActiveRect.minY ) * picZoom
-        }
-        if ActiveRect.maxX > (picSize.width - picCenter.x) / picZoom + frame.size.width / CGFloat(2){
-            picCenter.x = ( frame.size.width / CGFloat(2) - ActiveRect.maxX ) * picZoom + picSize.width
-        }
-        if ActiveRect.maxY >  (picSize.height - picCenter.y) / picZoom + frame.size.height / CGFloat(2){
-            picCenter.y = ( frame.size.height / CGFloat(2) - ActiveRect.maxY ) * picZoom + picSize.height
-        }
-
-        CATransaction.begin()
-        CATransaction.setDisableActions(true)
-        updateFrame(find:false)
-        CATransaction.commit()
-    }
-
-    /*
-    // Only override draw() if you perform custom drawing.
-    // An empty implementation adversely affects performance during animation.
-    override func draw(_ rect: CGRect) {
-        // Drawing code
-    }
-    */
-
 }
 
 struct TouchView: UIViewRepresentable {
     typealias UIViewType = ZoomView
-    @EnvironmentObject var m:Mandel
-
+    
     static var body: some View {
         TouchView()
     }
     func makeUIView(context: Context) -> ZoomView {
-        ZoomView(frame: .zero)
+        ZoomView()
     }
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
-        uiView.frame  = CGRect(x:0,y:0,width:m.WX,height:m.WY)
+        print("updateuiview called")
+        uiView.SizeChanged()
     }
     
 }
