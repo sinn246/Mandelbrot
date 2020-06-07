@@ -33,6 +33,7 @@ struct ContentView: View {
                 let tv = TouchView()
                 return(tv)
             }
+            .edgesIgnoringSafeArea(.all)
             VStack{
                 HStack{
                     XY0View()
@@ -51,8 +52,9 @@ struct ContentView: View {
                     Spacer()
                     XY1View()
                 }
-            }
+            }.padding()
         }
+
     }
 }
 

@@ -51,12 +51,13 @@ void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
 
 static void releaseData(void *info, const void *data, size_t size)
 {
-    NSLog(@"%@\n", (__bridge_transfer NSString*)info);
+    NSLog(@"Release Data");
     free((unsigned char *)data);
 }
 
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    NSLog(@"Calc start");
 
     BOOL stop = false;
     double two = 2.0;
@@ -93,7 +94,11 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         for(i=0;i<len;i++){
             if(p[3]==0){
                 if(tmp[i]>4.0){
-                    HSVtoRGB(p, (double)(z % 128) / 128.0, 1.0, 1.0);
+#define S1 8
+#define S2 16
+//                    HSVtoRGB(p, (double)((z/S1) % S2) / S2, 1.0, (double)(z%S1)/S1*2+0.5);
+                    HSVtoRGB(p, (double)(z%128) / 128, 1.0, 1.0);
+
                     p[3]=255;
                 }
             }
@@ -103,14 +108,18 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         vDSP_vsmaD(tmp, 1, &two, c_i, 1, z_i, 1, len);
         vDSP_vsubD(zi2, 1, zr2, 1, tmp, 1, len);
         vDSP_vaddD(tmp, 1, c_r, 1, z_r, 1, len);
-        if(z%10==0){
+        if(z%(WZ/10)==0){
             CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
             CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                              ,provider, NULL, FALSE, kCGRenderingIntentDefault);
             stop = update(image);
             CGImageRelease(image);
             CGDataProviderRelease(provider);
-            if(stop) goto abort;
+            if(stop){
+                NSLog(@"Stopped");
+                free(ptr);
+                goto abort;
+            }
         }
     }
     p = ptr;
@@ -124,6 +133,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     stop = update(image);
     CGImageRelease(image);
     CGDataProviderRelease(provider);
+    NSLog(@"Finished");
 abort:
     free(tmp);
     free(c_r);free(c_i);
