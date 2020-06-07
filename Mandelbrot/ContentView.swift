@@ -37,6 +37,7 @@ struct ContentView: View {
             VStack{
                 HStack{
                     XY0View()
+                    .shadow(color: .white, radius: 1)
                     Spacer()
                     Button(action: {}){
                         Image(systemName: "gear")
@@ -51,6 +52,7 @@ struct ContentView: View {
                     }
                     Spacer()
                     XY1View()
+                    .shadow(color: .white, radius: 1)
                 }
             }.padding()
         }
