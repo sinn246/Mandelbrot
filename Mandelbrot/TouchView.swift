@@ -103,7 +103,7 @@ class ZoomView: UIView {
         if initialstate{
             mas.Scale = Scale_MAX
         }
-        updateFrame(fix: true, scale: mas.Scale)
+        updateFrame(finish: true, scale: mas.Scale)
     }
     
     func UIRect(from:MasPic)->CGRect{
@@ -158,7 +158,7 @@ class ZoomView: UIView {
             let p = t1.location(in: self)
             mas.X = X_start + Double(UIcenter_start.x - p.x) * mas.Scale
             mas.Y = Y_start - Double(UIcenter_start.y - p.y) * mas.Scale
-            updateFrame(fix:false,scale:mas.Scale)
+            updateFrame(finish:false,scale:mas.Scale)
             
         }else if nTouch == 2{
             let arr = Array(event!.allTouches!)
@@ -185,7 +185,7 @@ class ZoomView: UIView {
             
             mas.X = X_start + dx * scale - (Double(PICcenter_start.x) - X_start) * (factor - 1)
             mas.Y = Y_start - dy * scale - (Double(PICcenter_start.y) - Y_start) * (factor - 1)
-            updateFrame(fix:false,scale:scale)
+            updateFrame(finish:false,scale:scale)
         }
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -195,7 +195,7 @@ class ZoomView: UIView {
         switch presentState{
         case .Zooming,.Dragging:
             initialstate = false
-            updateFrame(fix:true,scale: mas.Scale)
+            updateFrame(finish:true,scale: mas.Scale)
         default:
             break
         }
@@ -203,9 +203,9 @@ class ZoomView: UIView {
     }
     
     
-    func updateFrame(fix:Bool,scale:Double){
+    func updateFrame(finish:Bool,scale:Double){
         var scale = scale
-        if fix{
+        if finish {
             if scale < Scale_MIN {
                 scale = Scale_MIN
             }
@@ -226,7 +226,8 @@ class ZoomView: UIView {
             if p1.y < -CGFloat(Scale_MAX)*mas.WY/2 {
                 mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
             }
-            if scale >= mas.Scale{
+            print("new scale:\(scale), old scale:\(scaleBeforeMove)");
+            if scale >= scaleBeforeMove {
                 if let l = pics.last{
                     l.layer.removeFromSuperlayer()
                     l.pic.stop = true
@@ -240,20 +241,16 @@ class ZoomView: UIView {
                     self.setNeedsDisplay()
                 }
             })
-//            l.frame = UIRect(from: mp)
             layer.addSublayer(l)
             pics.append((pic:mp,layer:l))
-            
-        }
-        if let mp = mainPic{
-            mainLayer.frame = UIRect(from: mp)
-            print("main:\(UIRect(from: mp))")
-            for p in pics{
-                p.layer.frame = UIRect(from: p.pic)
-                print("sub:\(UIRect(from: p.pic))")
-            }
         }
         mas.Scale = scale
+        if let mp = mainPic{
+            mainLayer.frame = UIRect(from: mp)
+            for p in pics{
+                p.layer.frame = UIRect(from: p.pic)
+            }
+        }
         updater.update.toggle()
     }
 }

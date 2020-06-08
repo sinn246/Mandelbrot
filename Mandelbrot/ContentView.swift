@@ -47,7 +47,7 @@ struct ContentView: View {
                 Spacer()
                 HStack{
                     Button(action: {}){
-                        Image(systemName: "gear")
+                        Image(systemName: "square.and.arrow.up")
                             .font(.title)
                     }
                     Spacer()

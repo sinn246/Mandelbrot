@@ -94,11 +94,8 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         for(i=0;i<len;i++){
             if(p[3]==0){
                 if(tmp[i]>4.0){
-#define S1 8
-#define S2 16
-//                    HSVtoRGB(p, (double)((z/S1) % S2) / S2, 1.0, (double)(z%S1)/S1*2+0.5);
                     HSVtoRGB(p, (double)(z%128) / 128, 1.0, 1.0);
-
+                    z_r[len] = z_i[len] = c_r[len] = c_i[len] = 0.0;
                     p[3]=255;
                 }
             }
@@ -139,6 +136,85 @@ abort:
     free(c_r);free(c_i);
     free(z_r);free(z_i);
     free(zr2);free(zi2);
+}
+
+
+void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    NSLog(@"Calc start");
+
+    BOOL stop = false;
+    long len = WX*WY;
+    unsigned char* pic = malloc(len * 4);
+    memset(pic, 0, len*4);
+    unsigned char* p;
+    size_t total = len * sizeof(double);
+    double* c_r = malloc(total);
+    double* c_i = malloc(total);
+    double* z_r = malloc(total);
+    double* z_i = malloc(total);
+    
+    int x,y,z,i;
+
+    double* p_r = c_r;
+    double* p_i = c_i;
+    for(y = 0;y<WY;y++){
+        for(x = 0;x<WX;x++){
+            *p_r++ = X0 + Scale *(double)x;
+            *p_i++ = Y0 - Scale *(double)y;
+        }
+    }
+    memcpy(z_r, c_r, total);
+    memcpy(z_i, c_i, total);
+
+    const int Zstep = 20;
+    int Zfrom;
+    double cr,ci,zr,zi,r2,i2;
+    for(Zfrom = 1;Zfrom < WZ;Zfrom += Zstep){
+        p = pic;
+        for(i = 0;i<len;i++,p+=4){
+            if(p[3]!=0) continue;
+            zr = z_r[i]; zi = z_i[i];
+            cr = c_r[i]; ci = c_i[i];
+            for(z=Zfrom;z<Zfrom+Zstep;z++){
+                r2 = zr*zr;
+                i2 = zi*zi;
+                if(r2+i2>4){
+                    HSVtoRGB(p, (double)(z % 32) / 32.0, 1.0, 1.0);
+                    p[3] = 255;
+                    break;
+                }
+                zi = 2*zr*zi + ci;
+                zr = r2 - i2 + cr;
+            }//z
+            z_r[i]=zr; z_i[i]=zi;
+        }//i
+        CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,nil);
+        CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                         ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+        stop = update(image);
+        CGImageRelease(image);
+        CGDataProviderRelease(provider);
+        if(stop){
+            NSLog(@"Stopped");
+            free(pic);
+            goto abort;
+        }
+    }//Zfrom
+    p = pic;
+    for(i=0;i<len;i++,p+=4){
+        if(p[3]==0) p[3]=255;
+    }
+    CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,releaseData);
+    CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                     ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+    stop = update(image);
+    CGImageRelease(image);
+    CGDataProviderRelease(provider);
+    NSLog(@"Finished");
+abort:
+    free(c_r);free(c_i);
+    free(z_r);free(z_i);
 }
 
 
