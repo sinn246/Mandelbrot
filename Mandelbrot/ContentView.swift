@@ -23,6 +23,45 @@ struct XY1View: View{
     }
 }
 
+struct ExportButton: View{
+    @EnvironmentObject var u:CalcFinish
+    @State private var isSharePresented: Bool = false
+    var body: some View{
+        Button(action: {
+            print("buttonPressed")
+            self.isSharePresented = true
+        }){
+            Image(systemName: "square.and.arrow.up")
+                .font(.title)
+                .disabled(!u.flag)
+                .padding()
+        }
+        .sheet(isPresented: $isSharePresented, onDismiss: {
+            print("Dismiss")
+        }, content: {
+            ActivityViewController(activityItems: [UIImage(cgImage: lastImage!)])
+        })
+
+    }
+}
+
+struct ActivityViewController: UIViewControllerRepresentable {
+
+    var activityItems: [Any]
+    var applicationActivities: [UIActivity]? = nil
+
+    func makeUIViewController(context: UIViewControllerRepresentableContext<ActivityViewController>) -> UIActivityViewController {
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
+
+}
+
+////////////////////////////
+
+
 struct ContentView: View {
     var body: some View {
         ZStack{
@@ -30,6 +69,7 @@ struct ContentView: View {
                 print("******", geo.size)
                 mas.WX = geo.size.width
                 mas.WY = geo.size.height
+                print("GeometryReader")
                 let tv = TouchView()
                 return(tv)
             }
@@ -37,7 +77,7 @@ struct ContentView: View {
             VStack{
                 HStack{
                     XY0View()
-                    .shadow(color: .white, radius: 1)
+                        .shadow(color: .white, radius: 1)
                     Spacer()
                     Button(action: {}){
                         Image(systemName: "gear")
@@ -46,17 +86,14 @@ struct ContentView: View {
                 }
                 Spacer()
                 HStack{
-                    Button(action: {}){
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.title)
-                    }
+                    ExportButton()
                     Spacer()
                     XY1View()
-                    .shadow(color: .white, radius: 1)
+                        .shadow(color: .white, radius: 1)
                 }
             }.padding()
         }
-
+        
     }
 }
 

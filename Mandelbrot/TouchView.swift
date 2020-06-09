@@ -81,7 +81,6 @@ class ZoomView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
-    
     func SizeChanged(){
         Scale_MAX = 4.0 / Double(min(mas.WX,mas.WY))
         Scale_MIN = Double.ulpOfOne * 100
@@ -91,7 +90,7 @@ class ZoomView: UIView {
         }
         pics = []
         
-        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
+            mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
             DispatchQueue.main.async {
                 self.mainLayer.contents = mp.image!
                 self.setNeedsDisplay()
@@ -227,13 +226,13 @@ class ZoomView: UIView {
                 mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
             }
             print("new scale:\(scale), old scale:\(scaleBeforeMove)");
-            if scale >= scaleBeforeMove {
-                if let l = pics.last{
-                    l.layer.removeFromSuperlayer()
-                    l.pic.stop = true
-                    pics.removeLast()
-                }
+            let rmv = pics.filter{$0.pic.Scale <= scale}
+            for r in rmv{
+                r.pic.stop = true
+                r.pic.image = nil
+                r.layer.removeFromSuperlayer()
             }
+            pics = pics.filter{$0.pic.Scale > scale}
             let l = CALayer()
             let mp = MasPic(WZ: maxLoop, update: { p in
                 DispatchQueue.main.async{
@@ -251,7 +250,7 @@ class ZoomView: UIView {
                 p.layer.frame = UIRect(from: p.pic)
             }
         }
-        updater.update.toggle()
+        updater.flag.toggle()
     }
 }
 
@@ -262,7 +261,8 @@ struct TouchView: UIViewRepresentable {
         TouchView()
     }
     func makeUIView(context: Context) -> ZoomView {
-        ZoomView()
+        print("makeUIView")
+        return ZoomView()
     }
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
         print("updateuiview called")

@@ -18,9 +18,26 @@ struct Global{
 }
 
 var mas:Global = Global()
+var lastImage:CGImage? = nil
 
 final class Updater : ObservableObject {
-    @Published var update:Bool = false
+    @Published var flag:Bool = false
 }
 var updater:Updater = Updater()
 
+final class CalcFinish : ObservableObject {
+    @Published var flag:Bool = false
+}
+var calcFinish = CalcFinish()
+
+@objcMembers class Bridge:NSObject {
+    @objc class func setflag(_ f:Bool){
+        DispatchQueue.main.async {
+            calcFinish.flag = f
+        }
+    }
+    @objc class func setLastImage(_ img:CGImage){
+        lastImage = img
+    }
+
+}
