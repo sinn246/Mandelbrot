@@ -57,8 +57,112 @@ static void releaseData(void *info, const void *data, size_t size)
 }
 
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+    CFTimeInterval now,timer = CACurrentMediaTime();
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    NSLog(@"Calc start");
+    if(WZ > 50){
+        [Bridge setflag:FALSE];
+    }
+
+    BOOL stop = false;
+    float two = 2.0;
+    long len = WX*WY;
+    unsigned char* ptr = malloc(len * 4);
+    memset(ptr, 0, len*4);
+    unsigned char* p;
+    size_t total = len * sizeof(float);
+    float* c_r = malloc(total);
+    float* c_i = malloc(total);
+    float* z_r = malloc(total);
+    float* z_i = malloc(total);
+    float* zr2 = malloc(total);
+    float* zi2 = malloc(total);
+    float* tmp = malloc(total);
     
+    int x,y,z,i;
     
+    float* p_r = c_r;
+    float* p_i = c_i;
+    for(y = 0;y<WY;y++){
+        for(x = 0;x<WX;x++){
+            *p_r++ = X0 + Scale *(float)x;
+            *p_i++ = Y0 - Scale *(float)y;
+        }
+    }
+    memcpy(z_r, c_r, total);
+    memcpy(z_i, c_i, total);
+    int iFrom = 0;
+    int iTo = len;
+    BOOL push_back;
+    int iLast = iTo;
+    for(z=1;z<WZ;z++){
+        vDSP_vmul(z_r+iFrom, 1, z_r+iFrom, 1, zr2+iFrom, 1, (iTo-iFrom));
+        vDSP_vmul(z_i+iFrom, 1, z_i+iFrom, 1, zi2+iFrom, 1, (iTo-iFrom));
+        vDSP_vadd(zr2+iFrom, 1, zi2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
+        p = ptr+iFrom*4;
+        push_back = YES;
+        for(i=iFrom;i<iTo;i++){
+            if(p[3]==0){
+                if(tmp[i]>4.0){
+                    if(push_back) iFrom++;
+                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                    z_r[len] = z_i[len] = c_r[len] = c_i[len] = 0.0;
+                    p[3]=255;
+                }else{
+                    push_back = false;
+                    iLast = i;
+                }
+            }
+            p+=4;
+        }
+        iTo = iLast;
+//        NSLog(@"%d,%d",iFrom,iTo);
+        vDSP_vmul(z_r+iFrom, 1, z_i+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
+        vDSP_vsma(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
+        vDSP_vsub(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
+        vDSP_vadd(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
+        now = CACurrentMediaTime();
+        if(timer+1.0 < now){
+            timer = now;
+            CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
+            CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                             ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+            stop = update(image);
+            CGImageRelease(image);
+            CGDataProviderRelease(provider);
+            if(stop){
+                NSLog(@"Stopped");
+                free(ptr);
+                goto abort;
+            }
+        }
+    }
+    p = ptr;
+    for(i=0;i<len;i++){
+        if(p[3]==0) p[3]=255;
+        p+=4;
+    }
+    CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,releaseData);
+    CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                     ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+    stop = update(image);
+    [Bridge setLastImage:image];
+    CGImageRelease(image);
+    CGDataProviderRelease(provider);
+    NSLog(@"Finished");
+    if(WX>50){
+        [Bridge setflag:TRUE];
+    }
+abort:
+    free(tmp);
+    free(c_r);free(c_i);
+    free(z_r);free(z_i);
+    free(zr2);free(zi2);
+}
+
+
+void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+    CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     NSLog(@"Calc start");
     if(WZ > 50){
@@ -106,7 +210,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
             if(p[3]==0){
                 if(tmp[i]>4.0){
                     if(push_back) iFrom++;
-                    HSVtoRGB(p, (double)(z%128) / 128, 1.0, 1.0);
+                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
                     z_r[len] = z_i[len] = c_r[len] = c_i[len] = 0.0;
                     p[3]=255;
                 }else{
@@ -122,7 +226,9 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         vDSP_vsmaD(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
         vDSP_vsubD(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
         vDSP_vaddD(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
-        if(z%(WZ/10)==0){
+        now = CACurrentMediaTime();
+        if(timer+1.0 < now){
+            timer = now;
             CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
             CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                              ,provider, NULL, FALSE, kCGRenderingIntentDefault);

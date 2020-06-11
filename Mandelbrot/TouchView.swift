@@ -32,7 +32,7 @@ class MasPic {
         Scale = scale / Double(s)
         WX = Int(wx * s)
         WY = Int(wy * s)
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .default).async {
             calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
                 if !self.stop{
                     self.image = img
@@ -81,6 +81,17 @@ class ZoomView: UIView {
         fatalError("init(coder:) has not been implemented")
     }
     
+    override func layoutSubviews() {
+        if(mas.WX == bounds.width && mas.WY == bounds.height){
+            print("redundant layoutsubviews:\(self.bounds)")
+        }else{
+            print("layoutsubviews:\(self.bounds)")
+            mas.WX = bounds.width
+            mas.WY = bounds.height
+            SizeChanged()
+        }
+    }
+    
     func SizeChanged(){
         Scale_MAX = 4.0 / Double(min(mas.WX,mas.WY))
         Scale_MIN = Double.ulpOfOne * 100
@@ -90,7 +101,7 @@ class ZoomView: UIView {
         }
         pics = []
         
-            mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
+        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
             DispatchQueue.main.async {
                 self.mainLayer.contents = mp.image!
                 self.setNeedsDisplay()
@@ -104,6 +115,7 @@ class ZoomView: UIView {
         }
         updateFrame(finish: true, scale: mas.Scale)
     }
+    
     
     func UIRect(from:MasPic)->CGRect{
         let p0 = Pic2UI(CGPoint(x:from.X0,y:from.Y0))
@@ -242,7 +254,11 @@ class ZoomView: UIView {
             })
             layer.addSublayer(l)
             pics.append((pic:mp,layer:l))
+        }else{
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
         }
+        
         mas.Scale = scale
         if let mp = mainPic{
             mainLayer.frame = UIRect(from: mp)
@@ -250,6 +266,10 @@ class ZoomView: UIView {
                 p.layer.frame = UIRect(from: p.pic)
             }
         }
+        if !finish{
+            CATransaction.commit()
+        }
+
         updater.flag.toggle()
     }
 }
@@ -266,9 +286,7 @@ struct TouchView: UIViewRepresentable {
     }
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
         print("updateuiview called")
-        uiView.SizeChanged()
     }
-    
 }
 
 struct TouchView_Previews: PreviewProvider {

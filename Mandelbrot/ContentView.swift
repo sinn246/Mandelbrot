@@ -13,6 +13,8 @@ struct XY0View: View{
     @EnvironmentObject var u:Updater
     var body: some View{
         Text("(\(mas.X-mas.Scale*Double(mas.WX)/2),\(mas.Y+mas.Scale*Double(mas.WY)/2))")
+            .foregroundColor(.white)
+            .shadow(color: .black, radius: 1)
     }
 }
 
@@ -20,6 +22,8 @@ struct XY1View: View{
     @EnvironmentObject var u:Updater
     var body: some View{
         Text("(\(mas.X+mas.Scale*Double(mas.WX)/2),\(mas.Y-mas.Scale*Double(mas.WY)/2))")
+        .foregroundColor(.white)
+        .shadow(color: .black, radius: 1)
     }
 }
 
@@ -33,6 +37,7 @@ struct ExportButton: View{
         }){
             Image(systemName: "square.and.arrow.up")
                 .font(.title)
+                .shadow(color: .white, radius: 1)
                 .disabled(!u.flag)
                 .padding()
         }
@@ -41,22 +46,20 @@ struct ExportButton: View{
         }, content: {
             ActivityViewController(activityItems: [UIImage(cgImage: lastImage!)])
         })
-
     }
 }
 
 struct ActivityViewController: UIViewControllerRepresentable {
-
+    
     var activityItems: [Any]
     var applicationActivities: [UIActivity]? = nil
-
+    
     func makeUIViewController(context: UIViewControllerRepresentableContext<ActivityViewController>) -> UIActivityViewController {
         let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: applicationActivities)
         return controller
     }
-
+    
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
-
 }
 
 ////////////////////////////
@@ -65,23 +68,18 @@ struct ActivityViewController: UIViewControllerRepresentable {
 struct ContentView: View {
     var body: some View {
         ZStack{
-            GeometryReader{ geo -> TouchView in
-                print("******", geo.size)
-                mas.WX = geo.size.width
-                mas.WY = geo.size.height
-                print("GeometryReader")
-                let tv = TouchView()
-                return(tv)
-            }
-            .edgesIgnoringSafeArea(.all)
+            TouchView()
+                .edgesIgnoringSafeArea(.all)
+            
             VStack{
                 HStack{
                     XY0View()
-                        .shadow(color: .white, radius: 1)
                     Spacer()
                     Button(action: {}){
                         Image(systemName: "gear")
                             .font(.title)
+                            .shadow(color: .white, radius: 1)
+                            .padding()
                     }
                 }
                 Spacer()
@@ -89,7 +87,6 @@ struct ContentView: View {
                     ExportButton()
                     Spacer()
                     XY1View()
-                        .shadow(color: .white, radius: 1)
                 }
             }.padding()
         }
