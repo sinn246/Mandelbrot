@@ -11,11 +11,13 @@
 #import <Accelerate/Accelerate.h>
 #import "Mandelbrot-Swift.h"
 
+//#define BENCHMARK
 
 UIColor* makeColor(int z){
     double h = (double)(z % 32) / 32.0;
     return([UIColor colorWithHue:h saturation:1.0 brightness:1.0 alpha:1.0]);
 }
+
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
     int H2 = ((int)(H*6)) % 6;
@@ -56,11 +58,22 @@ static void releaseData(void *info, const void *data, size_t size)
     free((unsigned char *)data);
 }
 
+static NSTimeInterval start = 0;
+static void start_calc(){
+    start = CACurrentMediaTime();
+    NSLog(@"Calc start");
+}
+static void finish_calc(){
+    NSLog(@"Finished after %f seconds",CACurrentMediaTime()-start);
+}
+
+
+
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    NSLog(@"Calc start");
-    if(WZ > 50){
+    start_calc();
+    if(WZ > 100){
         [Bridge setflag:FALSE];
     }
 
@@ -121,6 +134,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         vDSP_vsma(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
         vDSP_vsub(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
         vDSP_vadd(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
+#ifndef BENCHMARK
         now = CACurrentMediaTime();
         if(timer+1.0 < now){
             timer = now;
@@ -136,12 +150,14 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                 goto abort;
             }
         }
+#endif
     }
     p = ptr;
     for(i=0;i<len;i++){
         if(p[3]==0) p[3]=255;
         p+=4;
     }
+    finish_calc();
     CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,releaseData);
     CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                      ,provider, NULL, FALSE, kCGRenderingIntentDefault);
@@ -149,8 +165,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     [Bridge setLastImage:image];
     CGImageRelease(image);
     CGDataProviderRelease(provider);
-    NSLog(@"Finished");
-    if(WX>50){
+    if(WX>100){
         [Bridge setflag:TRUE];
     }
 abort:
@@ -161,11 +176,13 @@ abort:
 }
 
 
+
+
 void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    NSLog(@"Calc start");
-    if(WZ > 50){
+    start_calc();
+    if(WZ > 100){
         [Bridge setflag:FALSE];
     }
 
@@ -226,6 +243,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
         vDSP_vsmaD(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
         vDSP_vsubD(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
         vDSP_vaddD(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
+#ifndef BENCHMARK
         now = CACurrentMediaTime();
         if(timer+1.0 < now){
             timer = now;
@@ -241,12 +259,14 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                 goto abort;
             }
         }
+#endif
     }
     p = ptr;
     for(i=0;i<len;i++){
         if(p[3]==0) p[3]=255;
         p+=4;
     }
+    finish_calc();
     CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,releaseData);
     CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                      ,provider, NULL, FALSE, kCGRenderingIntentDefault);
@@ -254,8 +274,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     [Bridge setLastImage:image];
     CGImageRelease(image);
     CGDataProviderRelease(provider);
-    NSLog(@"Finished");
-    if(WX>50){
+    if(WX>100){
         [Bridge setflag:TRUE];
     }
 abort:
@@ -266,10 +285,12 @@ abort:
 }
 
 
+
+
 void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    NSLog(@"Calc start");
-    if(WZ > 50){
+    start_calc();
+    if(WZ > 100){
         [Bridge setflag:FALSE];
     }
 
@@ -316,7 +337,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
                 i2 = zi*zi;
                 if(r2+i2>4){
                     if(push_back) iFrom++;
-                    HSVtoRGB(p, (double)(z % 32) / 32.0, 1.0, 1.0);
+                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
                     p[3] = 255;
                     break;
                 }
@@ -331,6 +352,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
             z_r[i]=zr; z_i[i]=zi;
         }//i
         iTo = iLast;
+#ifndef BENCHMARK
         CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,nil);
         CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                          ,provider, NULL, FALSE, kCGRenderingIntentDefault);
@@ -342,11 +364,13 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
             free(pic);
             goto abort;
         }
+#endif
     }//Zfrom
     p = pic;
     for(i=0;i<len;i++,p+=4){
         if(p[3]==0) p[3]=255;
     }
+    finish_calc();
     CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,releaseData);
     CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                      ,provider, NULL, FALSE, kCGRenderingIntentDefault);
@@ -354,49 +378,10 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     [Bridge setLastImage:image];
     CGImageRelease(image);
     CGDataProviderRelease(provider);
-    NSLog(@"Finished");
-    if(WZ > 50){
+    if(WZ > 100){
         [Bridge setflag:TRUE];
     }
 abort:
     free(c_r);free(c_i);
     free(z_r);free(z_i);
-}
-
-
-void calc_masOLD(long WX,long WY,long WZ, double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
-    unsigned char* ptr = malloc(WX * WY * 4);
-    unsigned char* p = ptr;
-    
-    NSLog(@"start one");
-        double c_r,c_i,z_r,z_i,zr2,zi2;
-        int x,y,z;
-        for(y = 0;y<WY;y++){
-            for(x = 0;x<WX;x++){
-                z_r = c_r = X0 + Scale * (double)x;
-                z_i = c_i = Y0 - Scale * (double)y;
-                for(z=1;z<WZ;z++){
-                    zr2 = z_r*z_r;
-                    zi2 = z_i*z_i;
-                    if(zr2+zi2>4) break;
-                    z_i = 2*z_r*z_i + c_i;
-                    z_r = zr2 - zi2 + c_r;
-                }
-                if(z==WZ){
-                    p[0] = p[1] = p[2] = 0; p[3] = 255;
-                }else{
-                    HSVtoRGB(p, (double)(z % 32) / 32.0, 1.0, 1.0);
-                    p[3] = 255;
-                }
-                p += 4;
-            }
-        }
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,releaseData);
-    CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
-                                     ,provider, NULL, FALSE, kCGRenderingIntentDefault);
-    update(image);
-    NSLog(@"quit one");
-    CGImageRelease(image);
-    CGDataProviderRelease(provider);
 }

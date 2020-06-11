@@ -14,10 +14,6 @@ let startLoop:Int = 100
 
 
 class MasPic {
-    func makeColor(z:Int) -> UIColor{
-        let h = Double(z % 32) / 32.0
-        return(UIColor(hue: CGFloat(h), saturation: 1.0, brightness: 1.0, alpha: 1.0))
-    }
     var X0,Y0,X1,Y1:Double
     var Scale:Double
     var WX,WY:Int
@@ -33,7 +29,7 @@ class MasPic {
         WX = Int(wx * s)
         WY = Int(wy * s)
         DispatchQueue.global(qos: .default).async {
-            calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
+            calc_masNoDSP(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
                 if !self.stop{
                     self.image = img
                     update(self)
