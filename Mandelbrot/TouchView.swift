@@ -29,7 +29,7 @@ class MasPic {
         WX = Int(wx * s)
         WY = Int(wy * s)
         DispatchQueue.global(qos: .default).async {
-            calc_masNoDSP(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
+            calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
                 if !self.stop{
                     self.image = img
                     update(self)

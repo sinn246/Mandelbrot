@@ -12,12 +12,12 @@
 #import "Mandelbrot-Swift.h"
 
 //#define BENCHMARK
+#define VEC_THRESHOLD 4
 
 UIColor* makeColor(int z){
     double h = (double)(z % 32) / 32.0;
     return([UIColor colorWithHue:h saturation:1.0 brightness:1.0 alpha:1.0]);
 }
-
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
     int H2 = ((int)(H*6)) % 6;
@@ -69,6 +69,8 @@ static void finish_calc(){
 
 
 
+size_t align16(size_t n) {return ((n-1)/16+1)*16;}
+
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -76,64 +78,110 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     if(WZ > 100){
         [Bridge setflag:FALSE];
     }
-
+    
     BOOL stop = false;
     float two = 2.0;
     long len = WX*WY;
     unsigned char* ptr = malloc(len * 4);
     memset(ptr, 0, len*4);
     unsigned char* p;
-    size_t total = len * sizeof(float);
-    float* c_r = malloc(total);
-    float* c_i = malloc(total);
-    float* z_r = malloc(total);
-    float* z_i = malloc(total);
-    float* zr2 = malloc(total);
-    float* zi2 = malloc(total);
-    float* tmp = malloc(total);
+    size_t SX = align16(WX*sizeof(float));
+    size_t sx = SX/sizeof(float);
+    size_t SY = WY*sizeof(float);
     
+    size_t total = SX * WY;
+    float* c_r = malloc(SX);
+    float* c_i = malloc(SY);
+    float* tmp = malloc(SX);
+    float* base = malloc(total*4);
+    float* Z;
+    size_t z_r = 0;
+    size_t z_i = sx;
+    size_t zr2 = sx*2;
+    size_t zi2 = sx*3;
+    int* iFrom = malloc(WY*sizeof(int));
+    int* iTo = malloc(WY*sizeof(int));
     int x,y,z,i;
+    float cr,ci,zr,zi,r2,i2;
     
-    float* p_r = c_r;
-    float* p_i = c_i;
-    for(y = 0;y<WY;y++){
-        for(x = 0;x<WX;x++){
-            *p_r++ = X0 + Scale *(float)x;
-            *p_i++ = Y0 - Scale *(float)y;
-        }
+    
+    for(x = 0;x<WX;x++){
+        c_r[x] = X0 + Scale *(float)x;
     }
-    memcpy(z_r, c_r, total);
-    memcpy(z_i, c_i, total);
-    int iFrom = 0;
-    int iTo = len;
+    for(y = 0;y<WY;y++){
+        c_i[y] = Y0 - Scale *(float)y;
+        Z = base + y*sx*4;
+        for(x = 0;x<WX;x++){
+            Z[z_i+x] = c_i[y];
+            Z[z_r+x] = c_r[x];
+        }
+        iFrom[y] = 0;
+        iTo[y] = WX;
+    }
     BOOL push_back;
-    int iLast = iTo;
-    for(z=1;z<WZ;z++){
-        vDSP_vmul(z_r+iFrom, 1, z_r+iFrom, 1, zr2+iFrom, 1, (iTo-iFrom));
-        vDSP_vmul(z_i+iFrom, 1, z_i+iFrom, 1, zi2+iFrom, 1, (iTo-iFrom));
-        vDSP_vadd(zr2+iFrom, 1, zi2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        p = ptr+iFrom*4;
-        push_back = YES;
-        for(i=iFrom;i<iTo;i++){
-            if(p[3]==0){
-                if(tmp[i]>4.0){
-                    if(push_back) iFrom++;
-                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
-                    z_r[len] = z_i[len] = c_r[len] = c_i[len] = 0.0;
-                    p[3]=255;
-                }else{
-                    push_back = false;
-                    iLast = i;
+    int iLast;
+    const int zStep = 10;
+    for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
+        for(y = 0;y<WY;y++){
+            if(iTo[y]==iFrom[y]) continue;
+            Z = base + y*sx*4;
+            if( iTo[y] - iFrom[y] <  VEC_THRESHOLD){
+                p = ptr+y*WX*4+iFrom[y]*4;
+                iLast = iTo[y];
+                for(i = iFrom[y];i<iTo[y];i++,p+=4){
+                    if(p[3]!=0) continue;
+                    zr = Z[z_r+i]; zi = Z[z_i+i];
+                    cr = c_r[i]; ci = c_i[y];
+                    push_back = TRUE;
+                    for(z=zFrom;z<zFrom+zStep;z++){
+                        r2 = zr*zr;
+                        i2 = zi*zi;
+                        if(r2+i2>4){
+                            if(push_back) iFrom[y]++;
+                            HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                            p[3] = 255;
+                            break;
+                        }
+                        zi = 2*zr*zi + ci;
+                        zr = r2 - i2 + cr;
+                    }
+                    if(z==zFrom+zStep){
+                        push_back = FALSE;
+                        iLast = i+1;
+                    }
+                    Z[z_r+i]=zr; Z[z_i+i]=zi;
+                }
+                iTo[y] = iLast;
+            }else{
+                for(z=zFrom;z<zFrom+zStep;z++){
+                    vDSP_vmul(Z+z_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vmul(Z+z_i+iFrom[y], 1, Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vadd(Z+zr2+iFrom[y], 1, Z+zi2+iFrom[y], 1, tmp+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    p = ptr+y*WX*4+iFrom[y]*4;
+                    push_back = TRUE;
+                    iLast = iTo[y];
+                    for(i=iFrom[y];i<iTo[y];i++,p+=4){
+                        if(p[3]==0){
+                            if(tmp[i]>4.0){
+                                if(push_back) iFrom[y]++;
+                                HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                                p[3]=255;
+                            }else{
+                                push_back = FALSE;
+                                iLast = i+1;
+                            }
+                        }
+                    }
+                    iTo[y] = iLast;
+                    if(iTo[y]==iFrom[y]) break;
+                    vDSP_vmul(Z+z_r+iFrom[y], 1, Z+z_i+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsmul(tmp, 1, &two, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsadd(tmp, 1, &c_i[y], Z+z_i+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsub(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vadd(tmp, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
                 }
             }
-            p+=4;
         }
-        iTo = iLast;
-//        NSLog(@"%d,%d",iFrom,iTo);
-        vDSP_vmul(z_r+iFrom, 1, z_i+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        vDSP_vsma(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
-        vDSP_vsub(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        vDSP_vadd(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
 #ifndef BENCHMARK
         now = CACurrentMediaTime();
         if(timer+1.0 < now){
@@ -169,10 +217,11 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
         [Bridge setflag:TRUE];
     }
 abort:
+    free(iTo); free(iFrom);
     free(tmp);
-    free(c_r);free(c_i);
-    free(z_r);free(z_i);
-    free(zr2);free(zi2);
+    free(base);
+    free(c_i);free(c_r);
+    
 }
 
 
@@ -185,64 +234,110 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     if(WZ > 100){
         [Bridge setflag:FALSE];
     }
-
+    
     BOOL stop = false;
     double two = 2.0;
     long len = WX*WY;
     unsigned char* ptr = malloc(len * 4);
     memset(ptr, 0, len*4);
     unsigned char* p;
-    size_t total = len * sizeof(double);
-    double* c_r = malloc(total);
-    double* c_i = malloc(total);
-    double* z_r = malloc(total);
-    double* z_i = malloc(total);
-    double* zr2 = malloc(total);
-    double* zi2 = malloc(total);
-    double* tmp = malloc(total);
+    size_t SX = align16(WX*sizeof(double));
+    size_t sx = SX/sizeof(double);
+    size_t SY = WY*sizeof(double);
     
+    size_t total = SX * WY;
+    double* c_r = malloc(SX);
+    double* c_i = malloc(SY);
+    double* tmp = malloc(SX);
+    double* base = malloc(total*4);
+    double* Z;
+    size_t z_r = 0;
+    size_t z_i = sx;
+    size_t zr2 = sx*2;
+    size_t zi2 = sx*3;
+    int* iFrom = malloc(WY*sizeof(int));
+    int* iTo = malloc(WY*sizeof(int));
     int x,y,z,i;
+    double cr,ci,zr,zi,r2,i2;
     
-    double* p_r = c_r;
-    double* p_i = c_i;
-    for(y = 0;y<WY;y++){
-        for(x = 0;x<WX;x++){
-            *p_r++ = X0 + Scale *(double)x;
-            *p_i++ = Y0 - Scale *(double)y;
-        }
+    
+    for(x = 0;x<WX;x++){
+        c_r[x] = X0 + Scale *(double)x;
     }
-    memcpy(z_r, c_r, total);
-    memcpy(z_i, c_i, total);
-    int iFrom = 0;
-    int iTo = len;
+    for(y = 0;y<WY;y++){
+        c_i[y] = Y0 - Scale *(double)y;
+        Z = base + y*sx*4;
+        for(x = 0;x<WX;x++){
+            Z[z_i+x] = c_i[y];
+            Z[z_r+x] = c_r[x];
+        }
+        iFrom[y] = 0;
+        iTo[y] = WX;
+    }
     BOOL push_back;
-    int iLast = iTo;
-    for(z=1;z<WZ;z++){
-        vDSP_vmulD(z_r+iFrom, 1, z_r+iFrom, 1, zr2+iFrom, 1, (iTo-iFrom));
-        vDSP_vmulD(z_i+iFrom, 1, z_i+iFrom, 1, zi2+iFrom, 1, (iTo-iFrom));
-        vDSP_vaddD(zr2+iFrom, 1, zi2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        p = ptr+iFrom*4;
-        push_back = YES;
-        for(i=iFrom;i<iTo;i++){
-            if(p[3]==0){
-                if(tmp[i]>4.0){
-                    if(push_back) iFrom++;
-                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
-                    z_r[len] = z_i[len] = c_r[len] = c_i[len] = 0.0;
-                    p[3]=255;
-                }else{
-                    push_back = false;
-                    iLast = i;
+    int iLast;
+    const int zStep = 10;
+    for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
+        for(y = 0;y<WY;y++){
+            if(iTo[y]==iFrom[y]) continue;
+            Z = base + y*sx*4;
+            if( iTo[y] - iFrom[y] <  VEC_THRESHOLD){
+                p = ptr+y*WX*4+iFrom[y]*4;
+                iLast = iTo[y];
+                for(i = iFrom[y];i<iTo[y];i++,p+=4){
+                    if(p[3]!=0) continue;
+                    zr = Z[z_r+i]; zi = Z[z_i+i];
+                    cr = c_r[i]; ci = c_i[y];
+                    push_back = TRUE;
+                    for(z=zFrom;z<zFrom+zStep;z++){
+                        r2 = zr*zr;
+                        i2 = zi*zi;
+                        if(r2+i2>4){
+                            if(push_back) iFrom[y]++;
+                            HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                            p[3] = 255;
+                            break;
+                        }
+                        zi = 2*zr*zi + ci;
+                        zr = r2 - i2 + cr;
+                    }
+                    if(z==zFrom+zStep){
+                        push_back = FALSE;
+                        iLast = i+1;
+                    }
+                    Z[z_r+i]=zr; Z[z_i+i]=zi;
+                }
+                iTo[y] = iLast;
+            }else{
+                for(z=zFrom;z<zFrom+zStep;z++){
+                    vDSP_vmulD(Z+z_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vmulD(Z+z_i+iFrom[y], 1, Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vaddD(Z+zr2+iFrom[y], 1, Z+zi2+iFrom[y], 1, tmp+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    p = ptr+y*WX*4+iFrom[y]*4;
+                    push_back = TRUE;
+                    iLast = iTo[y];
+                    for(i=iFrom[y];i<iTo[y];i++,p+=4){
+                        if(p[3]==0){
+                            if(tmp[i]>4.0){
+                                if(push_back) iFrom[y]++;
+                                HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                                p[3]=255;
+                            }else{
+                                push_back = FALSE;
+                                iLast = i+1;
+                            }
+                        }
+                    }
+                    iTo[y] = iLast;
+                    if(iTo[y]==iFrom[y]) break;
+                    vDSP_vmulD(Z+z_r+iFrom[y], 1, Z+z_i+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsmulD(tmp, 1, &two, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsaddD(tmp, 1, &c_i[y], Z+z_i+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsubD(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
+                    vDSP_vaddD(tmp, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
                 }
             }
-            p+=4;
         }
-        iTo = iLast;
-//        NSLog(@"%d,%d",iFrom,iTo);
-        vDSP_vmulD(z_r+iFrom, 1, z_i+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        vDSP_vsmaD(tmp+iFrom, 1, &two, c_i+iFrom, 1, z_i+iFrom, 1, (iTo-iFrom));
-        vDSP_vsubD(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, (iTo-iFrom));
-        vDSP_vaddD(tmp+iFrom, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
 #ifndef BENCHMARK
         now = CACurrentMediaTime();
         if(timer+1.0 < now){
@@ -278,14 +373,11 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
         [Bridge setflag:TRUE];
     }
 abort:
+    free(iTo); free(iFrom);
     free(tmp);
-    free(c_r);free(c_i);
-    free(z_r);free(z_i);
-    free(zr2);free(zi2);
+    free(base);
+    free(c_i);free(c_r);
 }
-
-
-
 
 void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
@@ -293,7 +385,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     if(WZ > 100){
         [Bridge setflag:FALSE];
     }
-
+    
     BOOL stop = false;
     int len = WX*WY;
     unsigned char* pic = malloc(len * 4);
@@ -306,7 +398,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     double* z_i = malloc(total);
     
     int x,y,z,i;
-
+    
     double* p_r = c_r;
     double* p_i = c_i;
     for(y = 0;y<WY;y++){
@@ -317,7 +409,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     }
     memcpy(z_r, c_r, total);
     memcpy(z_i, c_i, total);
-
+    
     const int Zstep = 20;
     int Zfrom;
     double cr,ci,zr,zi,r2,i2;
@@ -346,7 +438,7 @@ void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
             }
             if(z==Zfrom+Zstep){
                 push_back = NO;
-                iLast = i;
+                iLast = i+1;
             }
             //z
             z_r[i]=zr; z_i[i]=zi;
