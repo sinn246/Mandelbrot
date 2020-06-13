@@ -22,8 +22,8 @@ struct XY1View: View{
     @EnvironmentObject var u:Updater
     var body: some View{
         Text("(\(mas.X+mas.Scale*Double(mas.WX)/2),\(mas.Y-mas.Scale*Double(mas.WY)/2))")
-        .foregroundColor(.white)
-        .shadow(color: .black, radius: 1)
+            .foregroundColor(.white)
+            .shadow(color: .black, radius: 1)
     }
 }
 
@@ -44,7 +44,7 @@ struct ExportButton: View{
         .sheet(isPresented: $isSharePresented, onDismiss: {
             print("Dismiss")
         }, content: {
-            ActivityViewController(activityItems: [UIImage(cgImage: lastImage!)])
+            ActivityViewController(activityItems: [UIImage(cgImage: mas.lastImage!)])
         })
     }
 }
@@ -66,6 +66,7 @@ struct ActivityViewController: UIViewControllerRepresentable {
 
 
 struct ContentView: View {
+    @State var setup = false
     var body: some View {
         ZStack{
             TouchView()
@@ -75,12 +76,21 @@ struct ContentView: View {
                 HStack{
                     XY0View()
                     Spacer()
-                    Button(action: {}){
+                    Button(action: {
+                        self.setup.toggle()
+                    }){
                         Image(systemName: "gear")
                             .font(.title)
                             .shadow(color: .white, radius: 1)
                             .padding()
                     }
+                    .sheet(isPresented: $setup,
+                           onDismiss: {
+                            mas.lastMas?.calc(WZ: mas.WZ)
+                            mas.lastMas?.stop += 1
+                    },
+                           
+                           content: {SetupView().environmentObject(mas.calcDouble)})
                 }
                 Spacer()
                 HStack{

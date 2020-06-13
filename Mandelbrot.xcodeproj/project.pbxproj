@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		9A3E513D248CBDDC00FE8EF6 /* calc.m in Sources */ = {isa = PBXBuildFile; fileRef = 9A3E513C248CBDDC00FE8EF6 /* calc.m */; };
+		9A95A2242494BA4800517EC2 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A95A2232494BA4800517EC2 /* SetupView.swift */; };
 		F85827B32488A2E10036AD84 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F85827B22488A2E10036AD84 /* AppDelegate.swift */; };
 		F85827B52488A2E10036AD84 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F85827B42488A2E10036AD84 /* SceneDelegate.swift */; };
 		F85827B72488A2E10036AD84 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F85827B62488A2E10036AD84 /* ContentView.swift */; };
@@ -21,6 +22,7 @@
 /* Begin PBXFileReference section */
 		9A3E513B248CBDDB00FE8EF6 /* Mandelbrot-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Mandelbrot-Bridging-Header.h"; sourceTree = "<group>"; };
 		9A3E513C248CBDDC00FE8EF6 /* calc.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = calc.m; sourceTree = "<group>"; };
+		9A95A2232494BA4800517EC2 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SetupView.swift; path = Mandelbrot/SetupView.swift; sourceTree = "<group>"; };
 		F85827AF2488A2E10036AD84 /* Mandelbrot.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mandelbrot.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F85827B22488A2E10036AD84 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		F85827B42488A2E10036AD84 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
@@ -49,6 +51,7 @@
 			children = (
 				9A3E513C248CBDDC00FE8EF6 /* calc.m */,
 				F85827C62488A30A0036AD84 /* core.swift */,
+				9A95A2232494BA4800517EC2 /* SetupView.swift */,
 				F85827B12488A2E10036AD84 /* Mandelbrot */,
 				F85827B02488A2E10036AD84 /* Products */,
 				9A3E513B248CBDDB00FE8EF6 /* Mandelbrot-Bridging-Header.h */,
@@ -161,6 +164,7 @@
 				F85827B32488A2E10036AD84 /* AppDelegate.swift in Sources */,
 				F85827C92488C6440036AD84 /* TouchView.swift in Sources */,
 				9A3E513D248CBDDC00FE8EF6 /* calc.m in Sources */,
+				9A95A2242494BA4800517EC2 /* SetupView.swift in Sources */,
 				F85827B52488A2E10036AD84 /* SceneDelegate.swift in Sources */,
 				F85827C72488A30A0036AD84 /* core.swift in Sources */,
 				F85827B72488A2E10036AD84 /* ContentView.swift in Sources */,
