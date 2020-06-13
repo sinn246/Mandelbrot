@@ -14,10 +14,6 @@
 //#define BENCHMARK
 #define VEC_THRESHOLD 4
 
-UIColor* makeColor(int z){
-    double h = (double)(z % 32) / 32.0;
-    return([UIColor colorWithHue:h saturation:1.0 brightness:1.0 alpha:1.0]);
-}
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
     int H2 = ((int)(H*6)) % 6;
@@ -50,6 +46,11 @@ void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
         default:
             break;
     }
+}
+
+void putZ(unsigned char* p,int z){
+    CGFloat h = (CGFloat)((z+80) % 128) / 128.0;
+    HSVtoRGB(p, h, 1.0, 1.0);
 }
 
 static void releaseData(void *info, const void *data, size_t size)
@@ -116,11 +117,11 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
             Z[z_r+x] = c_r[x];
         }
         iFrom[y] = 0;
-        iTo[y] = WX;
+        iTo[y] = (int)WX;
     }
     BOOL push_back;
     int iLast;
-    const int zStep = 10;
+    const int zStep = 200;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;
@@ -138,7 +139,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                         i2 = zi*zi;
                         if(r2+i2>4){
                             if(push_back) iFrom[y]++;
-                            HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                            putZ(p,z);
                             p[3] = 255;
                             break;
                         }
@@ -164,7 +165,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                         if(p[3]==0){
                             if(tmp[i]>4.0){
                                 if(push_back) iFrom[y]++;
-                                HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                                putZ(p, z);
                                 p[3]=255;
                             }else{
                                 push_back = FALSE;
@@ -213,7 +214,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     [Bridge setLastImage:image];
     CGImageRelease(image);
     CGDataProviderRelease(provider);
-    if(WX>100){
+    if(WZ>100){
         [Bridge setflag:TRUE];
     }
 abort:
@@ -228,7 +229,6 @@ abort:
 
 
 void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
-    CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
@@ -272,11 +272,11 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
             Z[z_r+x] = c_r[x];
         }
         iFrom[y] = 0;
-        iTo[y] = WX;
+        iTo[y] = (int)WX;
     }
     BOOL push_back;
     int iLast;
-    const int zStep = 10;
+    const int zStep = 200;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;
@@ -294,7 +294,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                         i2 = zi*zi;
                         if(r2+i2>4){
                             if(push_back) iFrom[y]++;
-                            HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                            putZ(p, z);
                             p[3] = 255;
                             break;
                         }
@@ -320,7 +320,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                         if(p[3]==0){
                             if(tmp[i]>4.0){
                                 if(push_back) iFrom[y]++;
-                                HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
+                                putZ(p, z);
                                 p[3]=255;
                             }else{
                                 push_back = FALSE;
@@ -339,20 +339,16 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
             }
         }
 #ifndef BENCHMARK
-        now = CACurrentMediaTime();
-        if(timer+1.0 < now){
-            timer = now;
-            CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
-            CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
-                                             ,provider, NULL, FALSE, kCGRenderingIntentDefault);
-            stop = update(image);
-            CGImageRelease(image);
-            CGDataProviderRelease(provider);
-            if(stop){
-                NSLog(@"Stopped");
-                free(ptr);
-                goto abort;
-            }
+        CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
+        CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                         ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+        stop = update(image);
+        CGImageRelease(image);
+        CGDataProviderRelease(provider);
+        if(stop){
+            NSLog(@"Stopped");
+            free(ptr);
+            goto abort;
         }
 #endif
     }
@@ -369,7 +365,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     [Bridge setLastImage:image];
     CGImageRelease(image);
     CGDataProviderRelease(provider);
-    if(WX>100){
+    if(WZ>100){
         [Bridge setflag:TRUE];
     }
 abort:
@@ -377,103 +373,4 @@ abort:
     free(tmp);
     free(base);
     free(c_i);free(c_r);
-}
-
-void calc_masNoDSP(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
-    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
-    start_calc();
-    if(WZ > 100){
-        [Bridge setflag:FALSE];
-    }
-    
-    BOOL stop = false;
-    int len = WX*WY;
-    unsigned char* pic = malloc(len * 4);
-    memset(pic, 0, len*4);
-    unsigned char* p;
-    size_t total = len * sizeof(double);
-    double* c_r = malloc(total);
-    double* c_i = malloc(total);
-    double* z_r = malloc(total);
-    double* z_i = malloc(total);
-    
-    int x,y,z,i;
-    
-    double* p_r = c_r;
-    double* p_i = c_i;
-    for(y = 0;y<WY;y++){
-        for(x = 0;x<WX;x++){
-            *p_r++ = X0 + Scale *(double)x;
-            *p_i++ = Y0 - Scale *(double)y;
-        }
-    }
-    memcpy(z_r, c_r, total);
-    memcpy(z_i, c_i, total);
-    
-    const int Zstep = 20;
-    int Zfrom;
-    double cr,ci,zr,zi,r2,i2;
-    int iFrom = 0;
-    int iTo = len;
-    BOOL push_back;
-    int iLast = iTo;
-    for(Zfrom = 1;Zfrom < WZ;Zfrom += Zstep){
-        p = pic+iFrom*4;
-        push_back = YES;
-        for(i = iFrom;i<iTo;i++,p+=4){
-            if(p[3]!=0) continue;
-            zr = z_r[i]; zi = z_i[i];
-            cr = c_r[i]; ci = c_i[i];
-            for(z=Zfrom;z<Zfrom+Zstep;z++){
-                r2 = zr*zr;
-                i2 = zi*zi;
-                if(r2+i2>4){
-                    if(push_back) iFrom++;
-                    HSVtoRGB(p, (double)((z+80)%128) / 128, 1.0, 1.0);
-                    p[3] = 255;
-                    break;
-                }
-                zi = 2*zr*zi + ci;
-                zr = r2 - i2 + cr;
-            }
-            if(z==Zfrom+Zstep){
-                push_back = NO;
-                iLast = i+1;
-            }
-            //z
-            z_r[i]=zr; z_i[i]=zi;
-        }//i
-        iTo = iLast;
-#ifndef BENCHMARK
-        CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,nil);
-        CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
-                                         ,provider, NULL, FALSE, kCGRenderingIntentDefault);
-        stop = update(image);
-        CGImageRelease(image);
-        CGDataProviderRelease(provider);
-        if(stop){
-            NSLog(@"Stopped");
-            free(pic);
-            goto abort;
-        }
-#endif
-    }//Zfrom
-    p = pic;
-    for(i=0;i<len;i++,p+=4){
-        if(p[3]==0) p[3]=255;
-    }
-    finish_calc();
-    CGDataProviderRef provider = CGDataProviderCreateWithData(nil, pic ,WX*WY*4,releaseData);
-    CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
-                                     ,provider, NULL, FALSE, kCGRenderingIntentDefault);
-    stop = update(image);
-    [Bridge setLastImage:image];
-    CGImageRelease(image);
-    CGDataProviderRelease(provider);
-    if(WZ > 100){
-        [Bridge setflag:TRUE];
-    }
-abort:
-    free(c_r);free(c_i);
-    free(z_r);free(z_i);
 }

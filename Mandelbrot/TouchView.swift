@@ -9,7 +9,7 @@
 import SwiftUI
 import UIKit
 
-let maxLoop:Int = 1000
+let maxLoop:Int = 10000
 let startLoop:Int = 100
 
 
@@ -211,6 +211,7 @@ class ZoomView: UIView {
     
     
     func updateFrame(finish:Bool,scale:Double){
+        
         var scale = scale
         if finish {
             if scale < Scale_MIN {
@@ -241,6 +242,9 @@ class ZoomView: UIView {
                 r.layer.removeFromSuperlayer()
             }
             pics = pics.filter{$0.pic.Scale > scale}
+            for p in pics{
+                p.pic.stop = true
+            }
             let l = CALayer()
             let mp = MasPic(WZ: maxLoop, update: { p in
                 DispatchQueue.main.async{
