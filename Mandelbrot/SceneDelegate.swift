@@ -29,6 +29,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
                 .environmentObject(mas.updater)
                 .environmentObject(mas.calcFinish)
                 .environmentObject(mas.calcDouble)
+                .environmentObject(mas.calcIter)
             )
             self.window = window
             window.makeKeyAndVisible()

@@ -21,6 +21,13 @@ final class CalcDouble : ObservableObject {
     @Published var flag:Bool = false
 }
 
+final class CalcIter : ObservableObject {
+        @Published var selected:Int  = 0;
+}
+final class ColorIter : ObservableObject {
+        @Published var selected:Int  = 0;
+}
+
 struct Global{
     var X:Double = 0
     var Y:Double = 0
@@ -31,11 +38,20 @@ struct Global{
     var lastImage:CGImage? = nil
     var WZ:Int = 1000
 
+    var lastMas:MasPic? = nil
+
     var updater:Updater = Updater()
     var calcFinish = CalcFinish()
     var calcDouble = CalcDouble()
+    var calcIter = CalcIter()
+    var colorIter = ColorIter()
     
-    var lastMas:MasPic? = nil
+    var pics:[(pic:MasPic,layer:CALayer)] = []
+    var mainPic:MasPic? = nil
+    
+    let iters = [1000,3000,10000,30000]
+    let colorIters = [10,30,100,300]
+
 }
 
 var mas:Global = Global()
@@ -50,4 +66,8 @@ var mas:Global = Global()
     @objc class func setLastImage(_ img:CGImage){
         mas.lastImage = img
     }
+    @objc class func getColorIter()->Int{
+        return mas.colorIters[mas.colorIter.selected]
+    }
+
 }

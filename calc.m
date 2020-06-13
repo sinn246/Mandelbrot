@@ -48,9 +48,11 @@ void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
     }
 }
 
+static int zCycle = 30;
 void putZ(unsigned char* p,int z){
-    CGFloat h = (CGFloat)((z+80) % 128) / 128.0;
-    HSVtoRGB(p, h, 1.0, 1.0);
+    double l = log2(z+zCycle)/log2(zCycle)+0.6;
+//    CGFloat h = (CGFloat)((z+zCycle*2/3) % zCycle) / (CGFloat)zCycle;
+    HSVtoRGB(p, l - floor(l), 1.0, 1.0);
 }
 
 static void releaseData(void *info, const void *data, size_t size)
@@ -73,6 +75,7 @@ static void finish_calc(){
 size_t align16(size_t n) {return ((n-1)/16+1)*16;}
 
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+//    zCycle = [Bridge getColorIter];
     CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
@@ -122,7 +125,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     }
     BOOL push_back;
     int iLast;
-    const int zStep = 200;
+    int zStep = 100<WZ/10? WZ/10:100;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;
@@ -229,6 +232,7 @@ abort:
 
 
 void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+//    zCycle = [Bridge getColorIter];
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
@@ -277,7 +281,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     }
     BOOL push_back;
     int iLast;
-    const int zStep = 200;
+    int zStep = 100<WZ/10? WZ/10:100;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;

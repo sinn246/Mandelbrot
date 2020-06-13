@@ -86,11 +86,16 @@ struct ContentView: View {
                     }
                     .sheet(isPresented: $setup,
                            onDismiss: {
+                            mas.WZ = mas.iters[mas.calcIter.selected]
+                            print("Iter = \(mas.WZ)")
+                            
                             mas.lastMas?.calc(WZ: mas.WZ)
-                            mas.lastMas?.stop += 1
                     },
-                           
-                           content: {SetupView().environmentObject(mas.calcDouble)})
+                           content: {SetupView()
+                            .environmentObject(mas.calcDouble)
+                            .environmentObject(mas.calcIter)
+                            .environmentObject(mas.colorIter)
+                    })
                 }
                 Spacer()
                 HStack{

@@ -18,7 +18,7 @@ class MasPic {
     var Scale:Double
     var WX,WY:Int
     var image:CGImage? = nil
-    var stop:Int = 0
+    var stop:Bool = false
     var upd:(MasPic)->()
     var pid = 0
     init(x:Double,y:Double,scale:Double,wx:CGFloat,wy:CGFloat,update:@escaping (MasPic)->()){
@@ -38,19 +38,14 @@ class MasPic {
     }
     
     func calc(WZ:Int){
-        let my_pid = pid
         pid+=1
-        print("mas.calc stop=\(stop)")
+        let my_pid = pid
         let block = {(_ img:CGImage?) -> Bool in
-            if self.stop == 0{
+            if !self.stop && self.pid == my_pid{
                 self.image = img
                 self.upd(self)
                 return false
             }
-            if self.pid != my_pid{
-                return false
-            }
-            self.stop -= 1
             return true
         }
         DispatchQueue.global(qos: .default).async {
@@ -81,8 +76,6 @@ class ZoomView: UIView {
     var Scale_MAX:Double = 8.0
     var Scale_MIN:Double = 1.0
     
-    var pics:[(pic:MasPic,layer:CALayer)] = []
-    var mainPic:MasPic? = nil
     var mainLayer = CALayer()
     var initialstate:Bool = true
     
@@ -111,21 +104,21 @@ class ZoomView: UIView {
     func SizeChanged(){
         Scale_MAX = 4.0 / Double(min(mas.WX,mas.WY))
         Scale_MIN = Double.ulpOfOne * 100
-        for l in pics{
+        for l in mas.pics{
             l.layer.removeFromSuperlayer()
-            l.pic.stop += 1
+            l.pic.stop = true
         }
-        pics = []
+        mas.pics = []
         
-        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY, update: {mp in
+        mas.mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY, update: {mp in
             DispatchQueue.main.async {
                 self.mainLayer.contents = mp.image!
                 self.setNeedsDisplay()
             }
         })
-        mainPic?.calc(WZ: startLoop)
+        mas.mainPic?.calc(WZ: startLoop)
         
-        mainLayer.frame = UIRect(from: mainPic!)
+        mainLayer.frame = UIRect(from: mas.mainPic!)
         layer.addSublayer(mainLayer)
         
         if initialstate{
@@ -257,15 +250,15 @@ class ZoomView: UIView {
                 mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
             }
             print("new scale:\(scale), old scale:\(scaleBeforeMove)");
-            let rmv = pics.filter{$0.pic.Scale <= scale}
+            let rmv = mas.pics.filter{$0.pic.Scale <= scale}
             for r in rmv{
-                r.pic.stop += 1
+                r.pic.stop = true
                 r.pic.image = nil
                 r.layer.removeFromSuperlayer()
             }
-            pics = pics.filter{$0.pic.Scale > scale}
-            for p in pics{
-                p.pic.stop += 1
+            mas.pics = mas.pics.filter{$0.pic.Scale > scale}
+            for p in mas.pics{
+                p.pic.stop = true
             }
             let l = CALayer()
             let mp = MasPic(update: { p in
@@ -276,16 +269,16 @@ class ZoomView: UIView {
             })
             mp.calc(WZ:mas.WZ)
             layer.addSublayer(l)
-            pics.append((pic:mp,layer:l))
+            mas.pics.append((pic:mp,layer:l))
         }else{
             CATransaction.begin()
             CATransaction.setDisableActions(true)
         }
         
         mas.Scale = scale
-        if let mp = mainPic{
+        if let mp = mas.mainPic{
             mainLayer.frame = UIRect(from: mp)
-            for p in pics{
+            for p in mas.pics{
                 p.layer.frame = UIRect(from: p.pic)
             }
         }
