@@ -18,8 +18,10 @@ class MasPic {
     var Scale:Double
     var WX,WY:Int
     var image:CGImage? = nil
-    var stop:Bool = false
-    init(x:Double,y:Double,scale:Double,wx:CGFloat,wy:CGFloat,WZ:Int,update:@escaping (MasPic)->()){
+    var stop:Int = 0
+    var upd:(MasPic)->()
+    var pid = 0
+    init(x:Double,y:Double,scale:Double,wx:CGFloat,wy:CGFloat,update:@escaping (MasPic)->()){
         X0 = x - Double(wx) / 2 * scale
         Y0 = y + Double(wy) / 2 * scale
         X1 = x + Double(wx) / 2 * scale
@@ -28,18 +30,36 @@ class MasPic {
         Scale = scale / Double(s)
         WX = Int(wx * s)
         WY = Int(wy * s)
-        DispatchQueue.global(qos: .default).async {
-            calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,{(_ img:CGImage?) -> Bool in
-                if !self.stop{
-                    self.image = img
-                    update(self)
-                }
-                return(self.stop)
-            })
-        }
+        upd = update
+        mas.lastMas = self
     }
-    convenience init(WZ:Int,update:@escaping (MasPic)->()){
-        self.init(x:mas.X,y:mas.Y,scale:mas.Scale,wx:mas.WX,wy:mas.WY,WZ:WZ,update:update)
+    convenience init(update:@escaping (MasPic)->()){
+        self.init(x:mas.X,y:mas.Y,scale:mas.Scale,wx:mas.WX,wy:mas.WY,update:update)
+    }
+    
+    func calc(WZ:Int){
+        let my_pid = pid
+        pid+=1
+        print("mas.calc stop=\(stop)")
+        let block = {(_ img:CGImage?) -> Bool in
+            if self.stop == 0{
+                self.image = img
+                self.upd(self)
+                return false
+            }
+            if self.pid != my_pid{
+                return false
+            }
+            self.stop -= 1
+            return true
+        }
+        DispatchQueue.global(qos: .default).async {
+            if mas.calcDouble.flag{
+                calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+            }else{
+                calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+            }
+        }
     }
 }
 
@@ -93,16 +113,18 @@ class ZoomView: UIView {
         Scale_MIN = Double.ulpOfOne * 100
         for l in pics{
             l.layer.removeFromSuperlayer()
-            l.pic.stop = true
+            l.pic.stop += 1
         }
         pics = []
         
-        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY,WZ:startLoop, update: {mp in
+        mainPic = MasPic(x: 0, y: 0, scale: Scale_MAX, wx: mas.WX, wy: mas.WY, update: {mp in
             DispatchQueue.main.async {
                 self.mainLayer.contents = mp.image!
                 self.setNeedsDisplay()
             }
         })
+        mainPic?.calc(WZ: startLoop)
+        
         mainLayer.frame = UIRect(from: mainPic!)
         layer.addSublayer(mainLayer)
         
@@ -237,21 +259,22 @@ class ZoomView: UIView {
             print("new scale:\(scale), old scale:\(scaleBeforeMove)");
             let rmv = pics.filter{$0.pic.Scale <= scale}
             for r in rmv{
-                r.pic.stop = true
+                r.pic.stop += 1
                 r.pic.image = nil
                 r.layer.removeFromSuperlayer()
             }
             pics = pics.filter{$0.pic.Scale > scale}
             for p in pics{
-                p.pic.stop = true
+                p.pic.stop += 1
             }
             let l = CALayer()
-            let mp = MasPic(WZ: maxLoop, update: { p in
+            let mp = MasPic(update: { p in
                 DispatchQueue.main.async{
                     l.contents = p.image!
                     self.setNeedsDisplay()
                 }
             })
+            mp.calc(WZ:mas.WZ)
             layer.addSublayer(l)
             pics.append((pic:mp,layer:l))
         }else{
@@ -269,8 +292,7 @@ class ZoomView: UIView {
         if !finish{
             CATransaction.commit()
         }
-
-        updater.flag.toggle()
+        mas.updater.flag.toggle()
     }
 }
 

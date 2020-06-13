@@ -12,7 +12,7 @@
 #import "Mandelbrot-Swift.h"
 
 //#define BENCHMARK
-#define VEC_THRESHOLD 4
+#define VEC_THRESHOLD 8
 
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
@@ -93,7 +93,8 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     size_t total = SX * WY;
     float* c_r = malloc(SX);
     float* c_i = malloc(SY);
-    float* tmp = malloc(SX);
+    float* tmp = malloc(SX*2);
+    float* tmp2 = tmp + sx;
     float* base = malloc(total*4);
     float* Z;
     size_t z_r = 0;
@@ -155,16 +156,16 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                 iTo[y] = iLast;
             }else{
                 for(z=zFrom;z<zFrom+zStep;z++){
-                    vDSP_vmul(Z+z_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vmul(Z+z_i+iFrom[y], 1, Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vadd(Z+zr2+iFrom[y], 1, Z+zi2+iFrom[y], 1, tmp+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsq(Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsq(Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vaddsub(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp+iFrom[y], 1, tmp2 = tmp + sx, 1, (iTo[y]-iFrom[y]));
                     p = ptr+y*WX*4+iFrom[y]*4;
                     push_back = TRUE;
                     iLast = iTo[y];
                     for(i=iFrom[y];i<iTo[y];i++,p+=4){
                         if(p[3]==0){
                             if(tmp[i]>4.0){
-                                if(push_back) iFrom[y]++;
+                                if(push_back) { iFrom[y]++; tmp2++; }
                                 putZ(p, z);
                                 p[3]=255;
                             }else{
@@ -178,8 +179,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                     vDSP_vmul(Z+z_r+iFrom[y], 1, Z+z_i+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
                     vDSP_vsmul(tmp, 1, &two, tmp, 1, (iTo[y]-iFrom[y]));
                     vDSP_vsadd(tmp, 1, &c_i[y], Z+z_i+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vsub(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
-                    vDSP_vadd(tmp, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vadd(tmp2, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
                 }
             }
         }
@@ -248,7 +248,8 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     size_t total = SX * WY;
     double* c_r = malloc(SX);
     double* c_i = malloc(SY);
-    double* tmp = malloc(SX);
+    double* tmp = malloc(SX*2);
+    double* tmp2 = tmp + sx;
     double* base = malloc(total*4);
     double* Z;
     size_t z_r = 0;
@@ -310,16 +311,16 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                 iTo[y] = iLast;
             }else{
                 for(z=zFrom;z<zFrom+zStep;z++){
-                    vDSP_vmulD(Z+z_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vmulD(Z+z_i+iFrom[y], 1, Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vaddD(Z+zr2+iFrom[y], 1, Z+zi2+iFrom[y], 1, tmp+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsqD(Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vsqD(Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vaddsubD(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp+iFrom[y], 1, tmp2 = tmp + sx, 1, (iTo[y]-iFrom[y]));
                     p = ptr+y*WX*4+iFrom[y]*4;
                     push_back = TRUE;
                     iLast = iTo[y];
                     for(i=iFrom[y];i<iTo[y];i++,p+=4){
                         if(p[3]==0){
                             if(tmp[i]>4.0){
-                                if(push_back) iFrom[y]++;
+                                if(push_back) { iFrom[y]++; tmp2++; }
                                 putZ(p, z);
                                 p[3]=255;
                             }else{
@@ -333,8 +334,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                     vDSP_vmulD(Z+z_r+iFrom[y], 1, Z+z_i+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
                     vDSP_vsmulD(tmp, 1, &two, tmp, 1, (iTo[y]-iFrom[y]));
                     vDSP_vsaddD(tmp, 1, &c_i[y], Z+z_i+iFrom[y], 1, (iTo[y]-iFrom[y]));
-                    vDSP_vsubD(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp, 1, (iTo[y]-iFrom[y]));
-                    vDSP_vaddD(tmp, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
+                    vDSP_vaddD(tmp2, 1, c_r+iFrom[y], 1, Z+z_r+iFrom[y], 1, (iTo[y]-iFrom[y]));
                 }
             }
         }
