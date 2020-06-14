@@ -13,19 +13,11 @@ final class Updater : ObservableObject {
     @Published var flag:Bool = false
 }
 
-final class CalcFinish : ObservableObject {
-    @Published var flag:Bool = false
-}
 
-final class CalcDouble : ObservableObject {
-    @Published var flag:Bool = false
-}
-
-final class CalcIter : ObservableObject {
-        @Published var selected:Int  = 0;
-}
-final class ColorIter : ObservableObject {
-        @Published var selected:Int  = 0;
+final class SetupVars : ObservableObject {
+    @Published var calcDouble:Bool = true
+    @Published var iterSel:Int  = 0
+    @Published var colorSel:Int  = 0;
 }
 
 struct Global{
@@ -38,20 +30,16 @@ struct Global{
     var lastImage:CGImage? = nil
     var WZ:Int = 1000
 
-    var lastMas:MasPic? = nil
-
-    var updater:Updater = Updater()
-    var calcFinish = CalcFinish()
-    var calcDouble = CalcDouble()
-    var calcIter = CalcIter()
-    var colorIter = ColorIter()
+    var updater = Updater()
+    var redrawer = Updater()
+    var calcFinish = Updater()
+    var setupVars = SetupVars()
     
     var pics:[(pic:MasPic,layer:CALayer)] = []
     var mainPic:MasPic? = nil
     
     let iters = [1000,3000,10000,30000]
-    let colorIters = [10,30,100,300]
-
+    let colorIters = ["log","linear","??"]
 }
 
 var mas:Global = Global()
@@ -66,8 +54,8 @@ var mas:Global = Global()
     @objc class func setLastImage(_ img:CGImage){
         mas.lastImage = img
     }
-    @objc class func getColorIter()->Int{
-        return mas.colorIters[mas.colorIter.selected]
+    @objc class func getColorMode()->Int{
+        return mas.setupVars.colorSel
     }
 
 }

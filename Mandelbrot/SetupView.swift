@@ -9,30 +9,52 @@
 import SwiftUI
 
 struct SetupView: View {
-    @EnvironmentObject var cd:CalcDouble
-    @EnvironmentObject var ci:CalcIter
-    @EnvironmentObject var oi:ColorIter
-
+    @EnvironmentObject var s:SetupVars
+    
     var body: some View{
-        VStack{
-            Text("Faster-Than-Nanika Mandelbrot")
-            Toggle(isOn: $cd.flag){
+        VStack(alignment: .center, spacing: 30){
+            VStack(alignment: .center, spacing: 5){
+                Text("Mandelbrot Set Explorer")
+                    .bold()
+                    .font(.title)
+                    .foregroundColor(.blue)
+                    .shadow(color: .purple, radius: 3)
+                HStack{
+                    Spacer()
+                    Text("by Shin-ichi Nishimura 2020")
+                    .foregroundColor(.blue)
+                    .italic()
+                }
+            }
+            Toggle(isOn: $s.calcDouble){
                 Text("Use double-precision floating point")
-                
             }
-            Picker(selection: $ci.selected, label: Text("Iteration")) {
-                ForEach(0 ..< mas.iters.count) { num in
-                    Text("\(mas.iters[num])")
+            VStack(alignment: .center, spacing: 10){
+                Text("Max Iteration")
+                Picker(selection: $s.iterSel, label: Text("Iteration")) {
+                    ForEach(0 ..< mas.iters.count) { num in
+                        Text("\(mas.iters[num])")
+                    }
                 }
-            }
-            .pickerStyle(SegmentedPickerStyle())
-            Picker(selection: $oi.selected, label: Text("Color")) {
-                ForEach(0 ..< mas.colorIters.count) { num in
-                    Text("\(mas.colorIters[num])")
+                .pickerStyle(SegmentedPickerStyle())
+                HStack{
+                    Spacer()
+                    Text("Larger number will take longer to compute")
+                    .font(.caption)
+                    .foregroundColor(.gray)
                 }
+
             }
-            .pickerStyle(SegmentedPickerStyle())
-        }
+            VStack(alignment: .center, spacing: 10){
+                Text("Coloring mode")
+                Picker(selection: $s.colorSel, label: Text("Color")) {
+                    ForEach(0 ..< mas.colorIters.count) { num in
+                        Text(mas.colorIters[num])
+                    }
+                }
+                .pickerStyle(SegmentedPickerStyle())
+            }
+        }.padding()
     }
 }
 

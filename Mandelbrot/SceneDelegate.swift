@@ -27,9 +27,6 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             let window = UIWindow(windowScene: windowScene)
             window.rootViewController = UIHostingController(rootView: contentView
                 .environmentObject(mas.updater)
-                .environmentObject(mas.calcFinish)
-                .environmentObject(mas.calcDouble)
-                .environmentObject(mas.calcIter)
             )
             self.window = window
             window.makeKeyAndVisible()

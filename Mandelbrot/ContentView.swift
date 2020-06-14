@@ -28,7 +28,7 @@ struct XY1View: View{
 }
 
 struct ExportButton: View{
-    @EnvironmentObject var u:CalcFinish
+    @EnvironmentObject var u:Updater
     @State private var isSharePresented: Bool = false
     var body: some View{
         Button(action: {
@@ -70,6 +70,7 @@ struct ContentView: View {
     var body: some View {
         ZStack{
             TouchView()
+                .environmentObject(mas.redrawer)
                 .edgesIgnoringSafeArea(.all)
             
             VStack{
@@ -86,20 +87,19 @@ struct ContentView: View {
                     }
                     .sheet(isPresented: $setup,
                            onDismiss: {
-                            mas.WZ = mas.iters[mas.calcIter.selected]
+                            mas.WZ = mas.iters[mas.setupVars.iterSel]
                             print("Iter = \(mas.WZ)")
-                            
-                            mas.lastMas?.calc(WZ: mas.WZ)
+                            mas.redrawer.flag.toggle()
                     },
-                           content: {SetupView()
-                            .environmentObject(mas.calcDouble)
-                            .environmentObject(mas.calcIter)
-                            .environmentObject(mas.colorIter)
+                           content: {
+                            SetupView()
+                                .environmentObject(mas.setupVars)
                     })
                 }
                 Spacer()
                 HStack{
                     ExportButton()
+                        .environmentObject(mas.calcFinish)
                     Spacer()
                     XY1View()
                 }

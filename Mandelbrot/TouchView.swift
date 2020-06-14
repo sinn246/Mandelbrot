@@ -12,7 +12,6 @@ import UIKit
 let maxLoop:Int = 10000
 let startLoop:Int = 100
 
-
 class MasPic {
     var X0,Y0,X1,Y1:Double
     var Scale:Double
@@ -31,7 +30,6 @@ class MasPic {
         WX = Int(wx * s)
         WY = Int(wy * s)
         upd = update
-        mas.lastMas = self
     }
     convenience init(update:@escaping (MasPic)->()){
         self.init(x:mas.X,y:mas.Y,scale:mas.Scale,wx:mas.WX,wy:mas.WY,update:update)
@@ -49,7 +47,7 @@ class MasPic {
             return true
         }
         DispatchQueue.global(qos: .default).async {
-            if mas.calcDouble.flag{
+            if mas.setupVars.calcDouble{
                 calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
             }else{
                 calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
@@ -291,15 +289,21 @@ class ZoomView: UIView {
 
 struct TouchView: UIViewRepresentable {
     typealias UIViewType = ZoomView
-    
-    static var body: some View {
-        TouchView()
-    }
+    @EnvironmentObject var redrawer:Updater
+//    static var body: some View {
+ //       TouchView()
+  //  }
     func makeUIView(context: Context) -> ZoomView {
         print("makeUIView")
         return ZoomView()
     }
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
+        if redrawer.flag {
+            DispatchQueue.main.async {
+                uiView.SizeChanged()
+                mas.redrawer.flag = false
+            }
+        }
         print("updateuiview called")
     }
 }
