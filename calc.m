@@ -12,7 +12,7 @@
 #import "Mandelbrot-Swift.h"
 
 //#define BENCHMARK
-#define VEC_THRESHOLD 8
+#define VEC_THRESHOLD 16
 
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
@@ -60,10 +60,13 @@ void putZ(unsigned char* p,int z){
             break;
         case 1:
             h = log2(z+32)/5.0;
-            h = h - floor(h);
             break;
         default:
-            h = zCycle * exp(-z);
+/*            p[0] = ((z*5)&255) > 127 ? 256-((z*5)&255)/4 : (z*5)&255/4+191;
+            p[1] = ((z*3)&255) > 127 ? 256-((z*3)&255)/4 : (z*3)&255/4+191;
+            p[2] = ((z*4)&255) > 127 ? ((z*3)&255)/4+191 : 256-(z*4)&255/4;
+            return; */
+            h = (CGFloat)z * 0.5 / zCycle + log2(z+32)/5.0;
     }
     h += colorOffset;
     h = h - floor(h);
@@ -81,6 +84,7 @@ static void start_calc(){
     start = CACurrentMediaTime();
     NSLog(@"Calc start");
 }
+
 static void finish_calc(){
     NSLog(@"Finished after %f seconds",CACurrentMediaTime()-start);
 }
@@ -91,6 +95,7 @@ size_t align16(size_t n) {return ((n-1)/16+1)*16;}
 
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     colorMode = (int)[Bridge getColorMode];
+    colorOffset = [Bridge getColorHue];
     CFTimeInterval now,timer = CACurrentMediaTime();
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
@@ -248,6 +253,7 @@ abort:
 
 void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     colorMode = (int)[Bridge getColorMode];
+    colorOffset = [Bridge getColorHue];
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){

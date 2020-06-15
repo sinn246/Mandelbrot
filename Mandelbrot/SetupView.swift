@@ -12,7 +12,7 @@ struct SetupView: View {
     @EnvironmentObject var s:SetupVars
     
     var body: some View{
-        VStack(alignment: .center, spacing: 30){
+        VStack(alignment: .center, spacing: 20){
             VStack(alignment: .center, spacing: 5){
                 Text("Mandelbrot Set Explorer")
                     .bold()
@@ -21,7 +21,7 @@ struct SetupView: View {
                     .shadow(color: .purple, radius: 3)
                 HStack{
                     Spacer()
-                    Text("by Shin-ichi Nishimura 2020")
+                    Text("using Accelerate Framework")
                     .foregroundColor(.blue)
                     .italic()
                 }
@@ -29,7 +29,7 @@ struct SetupView: View {
             Toggle(isOn: $s.calcDouble){
                 Text("Use double-precision floating point")
             }
-            VStack(alignment: .center, spacing: 10){
+            VStack(alignment: .center, spacing: 5){
                 Text("Max Iteration")
                 Picker(selection: $s.iterSel, label: Text("Iteration")) {
                     ForEach(0 ..< mas.iters.count) { num in
@@ -45,7 +45,7 @@ struct SetupView: View {
                 }
 
             }
-            VStack(alignment: .center, spacing: 10){
+            VStack(alignment: .center, spacing: 5){
                 Text("Coloring mode")
                 Picker(selection: $s.colorSel, label: Text("Color")) {
                     ForEach(0 ..< mas.colorIters.count) { num in
@@ -53,6 +53,11 @@ struct SetupView: View {
                     }
                 }
                 .pickerStyle(SegmentedPickerStyle())
+                Text("Coloring base Hue")
+
+                Slider(value: $s.colorHue, in: 0...1){_ in
+                    }
+                .background(Image("Hue").resizable())
             }
         }.padding()
     }

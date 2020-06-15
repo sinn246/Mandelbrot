@@ -18,6 +18,8 @@ final class SetupVars : ObservableObject {
     @Published var calcDouble:Bool = true
     @Published var iterSel:Int  = 0
     @Published var colorSel:Int  = 0;
+    @Published var colorHue:Double = 0.6
+
 }
 
 struct Global{
@@ -39,11 +41,10 @@ struct Global{
     var mainPic:MasPic? = nil
     
     let iters = [1000,3000,10000,30000]
-    let colorIters = ["log","linear","??"]
+    let colorIters = ["linear","log","mixed"]
 }
 
 var mas:Global = Global()
-
 
 @objcMembers class Bridge:NSObject {
     @objc class func setflag(_ f:Bool){
@@ -57,5 +58,7 @@ var mas:Global = Global()
     @objc class func getColorMode()->Int{
         return mas.setupVars.colorSel
     }
-
+    @objc class func getColorHue()->Double{
+        return mas.setupVars.colorHue
+    }
 }

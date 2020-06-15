@@ -260,9 +260,11 @@ class ZoomView: UIView {
             }
             let l = CALayer()
             let mp = MasPic(update: { p in
-                DispatchQueue.main.async{
-                    l.contents = p.image!
-                    self.setNeedsDisplay()
+                if let img = p.image{
+                    DispatchQueue.main.async{
+                        l.contents = img
+                        self.setNeedsDisplay()
+                    }
                 }
             })
             mp.calc(WZ:mas.WZ)
