@@ -69,7 +69,6 @@ void putZ(unsigned char* p,int z){
             p[1] = (z)%127;
             p[2] = 255 - ((z*2)%251);
             return;
-            h = (CGFloat)z * 0.5 / zCycle + log2(z+32)/5.0;
     }
     h += colorOffset;
     h = h - floor(h);
