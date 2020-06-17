@@ -41,7 +41,7 @@ struct Global{
     var mainPic:MasPic? = nil
     
     let iters = [1000,3000,10000,30000]
-    let colorIters = ["linear","log","mixed"]
+    let colorIters = ["linear","log","mixed","RGB"]
 }
 
 var mas:Global = Global()
@@ -60,5 +60,11 @@ var mas:Global = Global()
     }
     @objc class func getColorHue()->Double{
         return mas.setupVars.colorHue
+    }
+}
+
+struct core_Previews: PreviewProvider {
+    static var previews: some View {
+        /*@START_MENU_TOKEN@*/Text("Hello, World!")/*@END_MENU_TOKEN@*/
     }
 }

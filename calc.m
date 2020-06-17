@@ -61,11 +61,14 @@ void putZ(unsigned char* p,int z){
         case 1:
             h = log2(z+32)/5.0;
             break;
+        case 2:
+            h = (CGFloat)z * 0.5 / zCycle + log2(z+32)/5.0;
+            break;
         default:
-/*            p[0] = ((z*5)&255) > 127 ? 256-((z*5)&255)/4 : (z*5)&255/4+191;
-            p[1] = ((z*3)&255) > 127 ? 256-((z*3)&255)/4 : (z*3)&255/4+191;
-            p[2] = ((z*4)&255) > 127 ? ((z*3)&255)/4+191 : 256-(z*4)&255/4;
-            return; */
+            p[0] = (z*3)%251+4;
+            p[1] = (z)%127;
+            p[2] = 255 - ((z*2)%251);
+            return;
             h = (CGFloat)z * 0.5 / zCycle + log2(z+32)/5.0;
     }
     h += colorOffset;

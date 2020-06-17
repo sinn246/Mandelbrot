@@ -28,7 +28,7 @@ struct XY1View: View{
 }
 
 struct ExportButton: View{
-    @EnvironmentObject var u:Updater
+    @EnvironmentObject var calcFinish:Updater
     @State private var isSharePresented: Bool = false
     var body: some View{
         Button(action: {
@@ -37,10 +37,10 @@ struct ExportButton: View{
         }){
             Image(systemName: "square.and.arrow.up")
                 .font(.title)
-                .shadow(color: .white, radius: 1)
-                .disabled(!u.flag)
+                .shadow(color: (calcFinish.flag ? .white : .black), radius: 1)
+                .disabled(!calcFinish.flag)
                 .padding()
-        }
+        }.disabled(!calcFinish.flag)
         .sheet(isPresented: $isSharePresented, onDismiss: {
             print("Dismiss")
         }, content: {
