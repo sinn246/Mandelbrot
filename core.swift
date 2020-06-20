@@ -13,13 +13,11 @@ final class Updater : ObservableObject {
     @Published var flag:Bool = false
 }
 
-
 final class SetupVars : ObservableObject {
     @Published var calcDouble:Bool = true
     @Published var iterSel:Int  = 0
     @Published var colorSel:Int  = 0;
     @Published var colorHue:Double = 0.6
-
 }
 
 struct Global{
@@ -63,8 +61,10 @@ var mas:Global = Global()
     }
 }
 
-struct core_Previews: PreviewProvider {
-    static var previews: some View {
-        /*@START_MENU_TOKEN@*/Text("Hello, World!")/*@END_MENU_TOKEN@*/
-    }
-}
+/*
+ struct core_Previews: PreviewProvider {
+     static var previews: some View {
+         /*@START_MENU_TOKEN@*/Text("Hello, World!")/*@END_MENU_TOKEN@*/
+     }
+ }
+ */

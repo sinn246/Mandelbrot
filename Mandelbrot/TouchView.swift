@@ -146,7 +146,6 @@ class ZoomView: UIView {
         )
     }
     
-    
     var scaleBeforeMove:Double = 1.0
     var D2_start:CGFloat = 0;
     var UIcenter_start:CGPoint = CGPoint()
@@ -292,21 +291,20 @@ class ZoomView: UIView {
 struct TouchView: UIViewRepresentable {
     typealias UIViewType = ZoomView
     @EnvironmentObject var redrawer:Updater
-//    static var body: some View {
- //       TouchView()
-  //  }
+
     func makeUIView(context: Context) -> ZoomView {
         print("makeUIView")
         return ZoomView()
     }
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
+        print("updateuiview called")
         if redrawer.flag {
+            print("redrawing")
             DispatchQueue.main.async {
                 uiView.SizeChanged()
                 mas.redrawer.flag = false
             }
         }
-        print("updateuiview called")
     }
 }
 
