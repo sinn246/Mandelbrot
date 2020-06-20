@@ -58,18 +58,8 @@ class MasPic {
 
 class ZoomView: UIView {
     
-    enum CanvasTouchState{
-        case
-        NoTouch,
-        FirstTouch,
-        Dragging,
-        SecondTouch,
-        Zooming,
-        TooManyTouches
-    }
-    var presentState:CanvasTouchState = .NoTouch
     var timeInitial:TimeInterval = 0
-    
+    var zooming:Bool = false
     /// const
     var Scale_MAX:Double = 8.0
     var Scale_MIN:Double = 1.0
@@ -122,7 +112,7 @@ class ZoomView: UIView {
         if initialstate{
             mas.Scale = Scale_MAX
         }
-        updateFrame(finish: true, scale: mas.Scale)
+        updateFrame(finish: true)
     }
     
     
@@ -145,92 +135,56 @@ class ZoomView: UIView {
             y: -(Double(point.y) - mas.Y) / mas.Scale + Double(mas.WY) / 2.0
         )
     }
-    
-    var scaleBeforeMove:Double = 1.0
-    var D2_start:CGFloat = 0;
-    var UIcenter_start:CGPoint = CGPoint()
-    var PICcenter_start:CGPoint = CGPoint()
-    var X_start:Double = 0
-    var Y_start:Double = 0
-    
-    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        let nTouch = event?.allTouches?.count
-        if nTouch == 1{
-            presentState = .FirstTouch
-        }else if nTouch == 2{
-            presentState = .SecondTouch
-        }else {
-            presentState = .TooManyTouches
-        }
-    }
+        
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         let nTouch = event?.allTouches?.count
         if nTouch == 1 {
             let t1 = event!.allTouches!.first!
-            if presentState != .Dragging{
-                presentState = .Dragging
-                scaleBeforeMove = mas.Scale
-                UIcenter_start = t1.previousLocation(in: self)
-                X_start = mas.X
-                Y_start = mas.Y
-            }
             let p = t1.location(in: self)
-            mas.X = X_start + Double(UIcenter_start.x - p.x) * mas.Scale
-            mas.Y = Y_start - Double(UIcenter_start.y - p.y) * mas.Scale
-            updateFrame(finish:false,scale:mas.Scale)
-            
+            let p0 = t1.previousLocation(in: self)
+            mas.X += Double(p0.x - p.x) * mas.Scale
+            mas.Y -= Double(p0.y - p.y) * mas.Scale
+            updateFrame(finish:false)
+            zooming = true
         }else if nTouch == 2{
             let arr = Array(event!.allTouches!)
-            if presentState != .Zooming{
-                presentState = .Zooming
-                scaleBeforeMove = mas.Scale
-                let p1 = arr[0].previousLocation(in: self)
-                let p2 = arr[1].previousLocation(in: self)
-                D2_start = (p1.x - p2.x)*(p1.x - p2.x) + (p1.y - p2.y)*(p1.y - p2.y)
-                UIcenter_start = CGPoint(x:Double(p1.x + p2.x)/2, y: Double(p1.y + p2.y)/2)
-                PICcenter_start = UI2Pic(UIcenter_start)
+            let p0 = arr[0].previousLocation(in: self)
+            let p1 = arr[1].previousLocation(in: self)
+            let p_D2:CGFloat = (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y)
+            let p_center:CGPoint = CGPoint(x:(p1.x+p0.x)/CGFloat(2),y:(p1.y+p0.y)/CGFloat(2))
+            let q0 = arr[0].location(in: self)
+            let q1 = arr[1].location(in: self)
+            let D2:CGFloat = (q1.x-q0.x)*(q1.x-q0.x) + (q1.y-q0.y)*(q1.y-q0.y)
+            let center:CGPoint = CGPoint(x:(q1.x+q0.x)/CGFloat(2),y:(q1.y+q0.y)/CGFloat(2))
+
+            if D2 > 0{
+                mas.Scale *= Double(p_D2/D2)
             }
-            let p0 = arr[0].location(in: self)
-            let p1 = arr[1].location(in: self)
-            let D2:CGFloat = (p1.x-p0.x)*(p1.x-p0.x) + (p1.y-p0.y)*(p1.y-p0.y)
-            let center:CGPoint = CGPoint(x:(p1.x+p0.x)/CGFloat(2),y:(p1.y+p0.y)/CGFloat(2))
-            var factor = Double(D2_start / D2);
-            var scale = scaleBeforeMove * factor
-            if scale < Scale_MIN { scale = Scale_MIN }
-            if scale > Scale_MAX { scale = Scale_MAX }
-            factor = scale / scaleBeforeMove
-            let dx = Double(UIcenter_start.x -  center.x )
-            let dy = Double(UIcenter_start.y -  center.y )
-            
-            mas.X = X_start + dx * scale - (Double(PICcenter_start.x) - X_start) * (factor - 1)
-            mas.Y = Y_start - dy * scale - (Double(PICcenter_start.y) - Y_start) * (factor - 1)
-            updateFrame(finish:false,scale:scale)
+            mas.X += Double(p_center.x - center.x) * mas.Scale
+            mas.Y -= Double(p_center.y - center.y) * mas.Scale
+            updateFrame(finish:false)
+            zooming = true
         }
     }
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         touchesEnded(touches, with: event)
     }
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        switch presentState{
-        case .Zooming,.Dragging:
+        if zooming {
             initialstate = false
-            updateFrame(finish:true,scale: mas.Scale)
-        default:
-            break
+            updateFrame(finish:true)
+            zooming = false
         }
-        presentState = .NoTouch
     }
     
     
-    func updateFrame(finish:Bool,scale:Double){
-        
-        var scale = scale
+    func updateFrame(finish:Bool){
         if finish {
-            if scale < Scale_MIN {
-                scale = Scale_MIN
+            if mas.Scale < Scale_MIN {
+                mas.Scale = Scale_MIN
             }
-            if scale > Scale_MAX {
-                scale = Scale_MAX
+            if mas.Scale > Scale_MAX {
+                mas.Scale = Scale_MAX
             }
             let p0 = UI2Pic(CGPoint.zero)
             let p1 = UI2Pic(CGPoint(x:mas.WX,y:mas.WY))
@@ -246,14 +200,13 @@ class ZoomView: UIView {
             if p1.y < -CGFloat(Scale_MAX)*mas.WY/2 {
                 mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
             }
-            print("new scale:\(scale), old scale:\(scaleBeforeMove)");
-            let rmv = mas.pics.filter{$0.pic.Scale <= scale}
+            let rmv = mas.pics.filter{$0.pic.Scale <= mas.Scale}
             for r in rmv{
                 r.pic.stop = true
                 r.pic.image = nil
                 r.layer.removeFromSuperlayer()
             }
-            mas.pics = mas.pics.filter{$0.pic.Scale > scale}
+            mas.pics = mas.pics.filter{$0.pic.Scale > mas.Scale}
             for p in mas.pics{
                 p.pic.stop = true
             }
@@ -274,7 +227,6 @@ class ZoomView: UIView {
             CATransaction.setDisableActions(true)
         }
         
-        mas.Scale = scale
         if let mp = mas.mainPic{
             mainLayer.frame = UIRect(from: mp)
             for p in mas.pics{
