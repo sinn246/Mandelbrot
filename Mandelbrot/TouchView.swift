@@ -159,6 +159,9 @@ class ZoomView: UIView {
 
             if D2 > 0{
                 mas.Scale *= Double(p_D2/D2)
+                let t = UI2Pic(center)
+                mas.X -= Double(mas.X - Double(t.x)) * (1.0 - Double(p_D2/D2))
+                mas.Y -= Double(mas.Y - Double(t.y)) * (1.0 - Double(p_D2/D2))
             }
             mas.X += Double(p_center.x - center.x) * mas.Scale
             mas.Y -= Double(p_center.y - center.y) * mas.Scale
