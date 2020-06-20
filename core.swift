@@ -16,7 +16,7 @@ final class Updater : ObservableObject {
 final class SetupVars : ObservableObject {
     @Published var calcDouble:Bool = true
     @Published var iterSel:Int  = 0
-    @Published var colorSel:Int  = 0;
+    @Published var colorSel:Int  = 2;
     @Published var colorHue:Double = 0.6
 }
 

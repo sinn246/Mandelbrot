@@ -69,6 +69,7 @@ class ZoomView: UIView {
     
     init(){
         super.init(frame:CGRect.null)
+        backgroundColor = .black
     }
     /*    required override init(frame F: CGRect) {
      super.init(frame:F)

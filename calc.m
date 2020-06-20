@@ -147,8 +147,10 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     }
     BOOL push_back;
     int iLast;
-    int zStep = 100<WZ/10? (int)WZ/10:100;
-    for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
+    int zStep = 100; // <WZ/10? (int)WZ/10:100;
+    int zTo;
+    for(int zFrom=1;zFrom<WZ;zFrom+=zStep,zStep*=2){
+        zTo = zFrom+zStep<WZ ? zFrom+zStep : (int)WZ;
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;
             Z = base + y*sx*4;
@@ -160,7 +162,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                     zr = Z[z_r+i]; zi = Z[z_i+i];
                     cr = c_r[i]; ci = c_i[y];
                     push_back = TRUE;
-                    for(z=zFrom;z<zFrom+zStep;z++){
+                    for(z=zFrom;z<zTo;z++){
                         r2 = zr*zr;
                         i2 = zi*zi;
                         if(r2+i2>4){
@@ -172,7 +174,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                         zi = 2*zr*zi + ci;
                         zr = r2 - i2 + cr;
                     }
-                    if(z==zFrom+zStep){
+                    if(z==zTo){
                         push_back = FALSE;
                         iLast = i+1;
                     }
@@ -180,7 +182,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                 }
                 iTo[y] = iLast;
             }else{
-                for(z=zFrom;z<zFrom+zStep;z++){
+                for(z=zFrom;z<zTo;z++){
                     vDSP_vsq(Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
                     vDSP_vsq(Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
                     vDSP_vaddsub(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp+iFrom[y], 1, tmp2 = tmp + sx, 1, (iTo[y]-iFrom[y]));
@@ -304,8 +306,10 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     }
     BOOL push_back;
     int iLast;
-    int zStep = 100<WZ/10? (int)WZ/10:100;
-    for(int zFrom=1;zFrom<WZ;zFrom+=zStep){
+    int zStep = 100; // <WZ/10? (int)WZ/10:100;
+    int zTo;
+    for(int zFrom=1;zFrom<WZ;zFrom+=zStep,zStep*=2){
+        zTo = zFrom+zStep<WZ ? zFrom+zStep : (int)WZ;
         for(y = 0;y<WY;y++){
             if(iTo[y]==iFrom[y]) continue;
             Z = base + y*sx*4;
@@ -317,7 +321,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                     zr = Z[z_r+i]; zi = Z[z_i+i];
                     cr = c_r[i]; ci = c_i[y];
                     push_back = TRUE;
-                    for(z=zFrom;z<zFrom+zStep;z++){
+                    for(z=zFrom;z<zTo;z++){
                         r2 = zr*zr;
                         i2 = zi*zi;
                         if(r2+i2>4){
@@ -329,7 +333,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                         zi = 2*zr*zi + ci;
                         zr = r2 - i2 + cr;
                     }
-                    if(z==zFrom+zStep){
+                    if(z==zTo){
                         push_back = FALSE;
                         iLast = i+1;
                     }
@@ -337,7 +341,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                 }
                 iTo[y] = iLast;
             }else{
-                for(z=zFrom;z<zFrom+zStep;z++){
+                for(z=zFrom;z<zTo;z++){
                     vDSP_vsqD(Z+z_r+iFrom[y], 1, Z+zr2+iFrom[y], 1, (iTo[y]-iFrom[y]));
                     vDSP_vsqD(Z+z_i+iFrom[y], 1, Z+zi2+iFrom[y], 1, (iTo[y]-iFrom[y]));
                     vDSP_vaddsubD(Z+zi2+iFrom[y], 1, Z+zr2+iFrom[y], 1, tmp+iFrom[y], 1, tmp2 = tmp + sx, 1, (iTo[y]-iFrom[y]));
