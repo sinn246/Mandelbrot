@@ -22,8 +22,8 @@ struct SetupView: View {
                 HStack{
                     Spacer()
                     Text("using Accelerate Framework")
-                    .foregroundColor(.blue)
-                    .italic()
+                        .foregroundColor(.blue)
+                        .italic()
                 }
             }
             Toggle(isOn: $s.calcDouble){
@@ -40,10 +40,10 @@ struct SetupView: View {
                 HStack{
                     Spacer()
                     Text("Larger number will take longer to compute")
-                    .font(.caption)
-                    .foregroundColor(.gray)
+                        .font(.caption)
+                        .foregroundColor(.gray)
                 }
-
+                
             }
             VStack(alignment: .center, spacing: 5){
                 Text("Coloring mode")
@@ -54,9 +54,9 @@ struct SetupView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 Text("Coloring base Hue")
-
+                
                 Slider(value: $s.colorHue, in: 0...1){_ in
-                    }
+                }
                 .background(Image("Hue").resizable())
             }
         }.padding()
@@ -66,5 +66,6 @@ struct SetupView: View {
 struct SetupView_Previews: PreviewProvider {
     static var previews: some View {
         SetupView()
+            .environmentObject(mas.setupVars)
     }
 }

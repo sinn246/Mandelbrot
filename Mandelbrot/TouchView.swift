@@ -57,24 +57,19 @@ class MasPic {
 }
 
 class ZoomView: UIView {
-    
-    var timeInitial:TimeInterval = 0
     var zooming:Bool = false
-    /// const
+    var initialstate:Bool = true
+
     var Scale_MAX:Double = 8.0
     var Scale_MIN:Double = 1.0
     
     var mainLayer = CALayer()
-    var initialstate:Bool = true
     
     init(){
         super.init(frame:CGRect.null)
         backgroundColor = .black
     }
-    /*    required override init(frame F: CGRect) {
-     super.init(frame:F)
-     }
-     */
+    
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
@@ -116,7 +111,6 @@ class ZoomView: UIView {
         updateFrame(finish: true)
     }
     
-    
     func UIRect(from:MasPic)->CGRect{
         let p0 = Pic2UI(CGPoint(x:from.X0,y:from.Y0))
         let p1 = Pic2UI(CGPoint(x:from.X1,y:from.Y1))
@@ -130,6 +124,7 @@ class ZoomView: UIView {
             y: mas.Y - (Double(point.y) - Double(mas.WY)/2.0) * mas.Scale
         )
     }
+    
     func Pic2UI(_ point:CGPoint)->CGPoint{
         return CGPoint(
             x: (Double(point.x) - mas.X) / mas.Scale + Double(mas.WX) / 2.0 ,
@@ -170,9 +165,11 @@ class ZoomView: UIView {
             zooming = true
         }
     }
+    
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         touchesEnded(touches, with: event)
     }
+    
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if zooming {
             initialstate = false
@@ -180,7 +177,6 @@ class ZoomView: UIView {
             zooming = false
         }
     }
-    
     
     func updateFrame(finish:Bool){
         if finish {
@@ -226,9 +222,6 @@ class ZoomView: UIView {
             mp.calc(WZ:mas.WZ)
             layer.addSublayer(l)
             mas.pics.append((pic:mp,layer:l))
-        }else{
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
         }
         
         if let mp = mas.mainPic{
@@ -236,9 +229,6 @@ class ZoomView: UIView {
             for p in mas.pics{
                 p.layer.frame = UIRect(from: p.pic)
             }
-        }
-        if !finish{
-            CATransaction.commit()
         }
         mas.updater.flag.toggle()
     }
@@ -267,5 +257,6 @@ struct TouchView: UIViewRepresentable {
 struct TouchView_Previews: PreviewProvider {
     static var previews: some View {
         TouchView()
+            .environmentObject(mas.redrawer)
     }
 }

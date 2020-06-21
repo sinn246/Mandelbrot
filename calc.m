@@ -6,14 +6,12 @@
 //  Copyright © 2020 sinn246. All rights reserved.
 //
 
-//#import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <Accelerate/Accelerate.h>
 #import "Mandelbrot-Swift.h"
 
-//#define BENCHMARK
 #define VEC_THRESHOLD 16
-
+// for smaller number than this I wont use vDSP
 
 void HSVtoRGB(unsigned char* RGB,CGFloat H,CGFloat S,CGFloat V){
     int H2 = ((int)(H*6)) % 6;
@@ -91,9 +89,8 @@ static void finish_calc(){
     NSLog(@"Finished after %f seconds",CACurrentMediaTime()-start);
 }
 
-
-
 size_t align16(size_t n) {return ((n-1)/16+1)*16;}
+
 
 void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
     colorMode = (int)[Bridge getColorMode];
@@ -147,7 +144,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     }
     BOOL push_back;
     int iLast;
-    int zStep = 100; // <WZ/10? (int)WZ/10:100;
+    int zStep = 100;
     int zTo;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep,zStep*=2){
         zTo = zFrom+zStep<WZ ? zFrom+zStep : (int)WZ;
@@ -210,7 +207,6 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                 }
             }
         }
-#ifndef BENCHMARK
         now = CACurrentMediaTime();
         if(timer+1.0 < now){
             timer = now;
@@ -226,7 +222,6 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
                 goto abort;
             }
         }
-#endif
     }
     p = ptr;
     for(i=0;i<len;i++){
@@ -249,7 +244,6 @@ abort:
     free(tmp);
     free(base);
     free(c_i);free(c_r);
-    
 }
 
 
@@ -306,7 +300,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     }
     BOOL push_back;
     int iLast;
-    int zStep = 100; // <WZ/10? (int)WZ/10:100;
+    int zStep = 100;
     int zTo;
     for(int zFrom=1;zFrom<WZ;zFrom+=zStep,zStep*=2){
         zTo = zFrom+zStep<WZ ? zFrom+zStep : (int)WZ;
@@ -369,7 +363,6 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
                 }
             }
         }
-#ifndef BENCHMARK
         CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
         CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
                                          ,provider, NULL, FALSE, kCGRenderingIntentDefault);
@@ -381,7 +374,6 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
             free(ptr);
             goto abort;
         }
-#endif
     }
     p = ptr;
     for(i=0;i<len;i++){
