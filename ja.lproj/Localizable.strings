@@ -1,0 +1,13 @@
+/* 
+  Localizable.strings
+  Mandelbrot
+
+  Created by 西村 信一 on 2020/06/21.
+  Copyright © 2020 sinn246. All rights reserved.
+*/
+"Mandelbrot Set Explorer" = "マンデルブロ集合高速探査";
+"Use double-precision floating point" = "倍精度浮動小数点を使用";
+"Max Iteration" = "最大計算回数";
+"Larger number will take longer to compute" = "回数が多くなると計算時間がかかります";
+"Coloring mode" = "彩色法";
+"Coloring base Hue" = "初期色相";
