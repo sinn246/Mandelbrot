@@ -53,6 +53,7 @@ struct Global{
         }
         if UserDefaults.standard.object(forKey: "iterSel") != nil{
             setupVars.iterSel = UserDefaults.standard.integer(forKey: "iterSel")
+            WZ = iters[setupVars.iterSel]
         }
         if UserDefaults.standard.object(forKey: "colorSel") != nil{
             setupVars.colorSel = UserDefaults.standard.integer(forKey: "colorSel")

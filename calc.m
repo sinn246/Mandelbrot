@@ -397,3 +397,134 @@ abort:
     free(base);
     free(c_i);free(c_r);
 }
+
+void calc_masD_line(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^update)(CGImageRef)){
+    colorMode = (int)[Bridge getColorMode];
+    colorOffset = [Bridge getColorHue];
+    CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
+    start_calc();
+    if(WZ > 100){
+        [Bridge setflag:FALSE];
+    }
+    
+    BOOL stop = false;
+    double two = 2.0;
+    long len = WX*WY;
+    unsigned char* ptr = malloc(len * 4);
+    memset(ptr, 0, len*4);
+    unsigned char* p,*py;
+    size_t SX = align16(WX*sizeof(double));
+    size_t sx = SX/sizeof(double);
+    size_t SY = WY*sizeof(double);
+    
+    double* c_r = malloc(SX);
+    double* c_i = malloc(SY);
+    double* base = malloc(SX*6);
+    double* tmp = base;
+    double* tmp2 = base + sx;
+    double* z_r = base + sx*2;
+    double* z_i = base + sx*3;
+    double* zr2 = base + sx*4;
+    double*  zi2 = base + sx*5;
+    int iFrom,iTo;
+    int x,y,z,i;
+    double cr,ci,zr,zi,r2,i2;
+    
+    
+    for(x = 0;x<WX;x++){
+        c_r[x] = X0 + Scale *(double)x;
+    }
+    for(y = 0;y<WY;y++){
+        c_i[y] = Y0 - Scale *(double)y;
+    }
+    BOOL push_back;
+    int iLast;
+    int yStep = (int) WY / 10;
+    for(int yFrom=0;yFrom < WY;yFrom+=yStep){
+        int yTo = yFrom+yStep<WY ? yFrom+yStep : (int)WY;
+        for(y = yFrom;y<yTo;y++){
+            py = ptr+y*WX*4;
+            memcpy(z_r,c_r,SX);
+            for(i = 0;i<WX;i++) z_i[i] = c_i[y];
+            iFrom = 0;
+            iTo = (int)WX;
+            for(z = 1;z<WZ;z++){
+                p = py+iFrom*4;
+                if( iTo - iFrom <  VEC_THRESHOLD){
+                    for(i = iFrom; i<iTo; i++,p+=4){
+                        if(p[3]!=0) continue;
+                        zr = z_r[i]; zi = z_i[i];
+                        cr = c_r[i]; ci = c_i[y];
+                        for(int zz = z;zz<WZ;zz++){
+                            r2 = zr*zr;
+                            i2 = zi*zi;
+                            if(r2+i2>4){
+                                putZ(p, z);
+                                p[3] = 255;
+                                break;
+                            }
+                            zi = 2*zr*zi + ci;
+                            zr = r2 - i2 + cr;
+                        }
+                        if(p[3]==0) p[3] = 255;
+                    }
+                    break;
+                }else{
+                    vDSP_vsqD(z_r+iFrom, 1, zr2+iFrom, 1, (iTo-iFrom));
+                    vDSP_vsqD(z_i+iFrom, 1, zi2+iFrom, 1, (iTo-iFrom));
+                    vDSP_vaddsubD(zi2+iFrom, 1, zr2+iFrom, 1, tmp+iFrom, 1, tmp2 = tmp + sx , 1, (iTo-iFrom));
+                    push_back = TRUE;
+                    iLast = iTo;
+                    for(i=iFrom;i<iTo;i++,p+=4){
+                        if(p[3]==0){
+                            if(tmp[i]>4.0){
+                                if(push_back) { iFrom++; tmp2++; }
+                                putZ(p, z);
+                                p[3]=255;
+                            }else{
+                                push_back = FALSE;
+                                iLast = i+1;
+                            }
+                        }
+                    }
+                    iTo = iLast;
+                    if(iTo==iFrom) break;
+                    vDSP_vmulD(z_r+iFrom, 1, z_i+iFrom, 1, tmp, 1, (iTo-iFrom));
+                    vDSP_vsmulD(tmp, 1, &two, tmp, 1, (iTo-iFrom));
+                    vDSP_vsaddD(tmp, 1, &c_i[y], z_i+iFrom, 1, (iTo-iFrom));
+                    vDSP_vaddD(tmp2, 1, c_r+iFrom, 1, z_r+iFrom, 1, (iTo-iFrom));
+                }
+            }
+        }
+        CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,nil);
+        CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                         ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+        stop = update(image);
+        CGImageRelease(image);
+        CGDataProviderRelease(provider);
+        if(stop){
+            NSLog(@"Stopped");
+            free(ptr);
+            goto abort;
+        }
+    }
+    p = ptr;
+    for(i=0;i<len;i++){
+        if(p[3]==0) p[3]=255;
+        p+=4;
+    }
+    finish_calc();
+    CGDataProviderRef provider = CGDataProviderCreateWithData(nil, ptr ,WX*WY*4,releaseData);
+    CGImageRef image = CGImageCreate(WX, WY, 8, 32, WX*4, colorSpace, kCGImageAlphaLast | kCGBitmapByteOrder32Big
+                                     ,provider, NULL, FALSE, kCGRenderingIntentDefault);
+    stop = update(image);
+    [Bridge setLastImage:image];
+    CGImageRelease(image);
+    CGDataProviderRelease(provider);
+    if(WZ>100){
+        [Bridge setflag:TRUE];
+    }
+abort:
+    free(base);
+    free(c_i);free(c_r);
+}
