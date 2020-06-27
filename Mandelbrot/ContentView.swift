@@ -90,6 +90,7 @@ struct ContentView: View {
                             mas.WZ = mas.iters[mas.setupVars.iterSel]
                             print("Iter = \(mas.WZ)")
                             mas.redrawer.flag.toggle()
+                            mas.saveSettings()
                     },
                            content: {
                             SetupView()

@@ -58,7 +58,6 @@ class MasPic {
 
 class ZoomView: UIView {
     var zooming:Bool = false
-    var initialstate:Bool = true
 
     var Scale_MAX:Double = 8.0
     var Scale_MIN:Double = 1.0
@@ -68,6 +67,14 @@ class ZoomView: UIView {
     init(){
         super.init(frame:CGRect.null)
         backgroundColor = .black
+        layer.actions = [
+            "onOrderIn": NSNull(),
+            "onOrderOut": NSNull(),
+            "sublayers": NSNull(),
+            "contents": NSNull(),
+            "bounds": NSNull(),
+            "position":NSNull()
+        ]
     }
     
     required init?(coder: NSCoder) {
@@ -105,9 +112,6 @@ class ZoomView: UIView {
         mainLayer.frame = UIRect(from: mas.mainPic!)
         layer.addSublayer(mainLayer)
         
-        if initialstate{
-            mas.Scale = Scale_MAX
-        }
         updateFrame(finish: true)
     }
     
@@ -172,7 +176,6 @@ class ZoomView: UIView {
     
     override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
         if zooming {
-            initialstate = false
             updateFrame(finish:true)
             zooming = false
         }
@@ -200,8 +203,8 @@ class ZoomView: UIView {
             if p1.y < -CGFloat(Scale_MAX)*mas.WY/2 {
                 mas.Y += Double(-CGFloat(Scale_MAX)*mas.WY/2-p1.y)
             }
-            let rmv = mas.pics.filter{$0.pic.Scale <= mas.Scale}
-            for r in rmv{
+            let toRemove = mas.pics.filter{$0.pic.Scale <= mas.Scale}
+            for r in toRemove{
                 r.pic.stop = true
                 r.pic.image = nil
                 r.layer.removeFromSuperlayer()
@@ -222,15 +225,26 @@ class ZoomView: UIView {
             mp.calc(WZ:mas.WZ)
             layer.addSublayer(l)
             mas.pics.append((pic:mp,layer:l))
-        }
-        
-        if let mp = mas.mainPic{
-            mainLayer.frame = UIRect(from: mp)
-            for p in mas.pics{
-                p.layer.frame = UIRect(from: p.pic)
+            if let mp = mas.mainPic{
+                mainLayer.frame = UIRect(from: mp)
+                for p in mas.pics{
+                    p.layer.frame = UIRect(from: p.pic)
+                }
             }
+            mas.updater.flag.toggle()
+            mas.saveCoord()
+        }else{
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
+            if let mp = mas.mainPic{
+                mainLayer.frame = UIRect(from: mp)
+                for p in mas.pics{
+                    p.layer.frame = UIRect(from: p.pic)
+                }
+            }
+            mas.updater.flag.toggle()
+            CATransaction.commit()
         }
-        mas.updater.flag.toggle()
     }
 }
 

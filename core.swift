@@ -21,25 +21,69 @@ final class SetupVars : ObservableObject {
 }
 
 struct Global{
-    var X:Double = 0
-    var Y:Double = 0
+    var X:Double
+    var Y:Double
     var WX:CGFloat = 480
     var WY:CGFloat = 640
-    var Scale:Double = 4.0 / 480.0
-
+    var Scale:Double
+    
     var lastImage:CGImage? = nil
     var WZ:Int = 1000
-
+    
     var updater = Updater()
     var redrawer = Updater()
     var calcFinish = Updater()
     var setupVars = SetupVars()
-    
     var pics:[(pic:MasPic,layer:CALayer)] = []
     var mainPic:MasPic? = nil
     
     let iters = [1000,3000,10000,30000]
     let colorIters = ["linear","log","mixed","RGB"]
+
+    init() {
+        X = UserDefaults.standard.double(forKey: "X")
+        Y = UserDefaults.standard.double(forKey: "Y")
+        if UserDefaults.standard.object(forKey: "Scale") != nil{
+            Scale = UserDefaults.standard.double(forKey: "Scale")
+        }else{
+            Scale = 4.0 / 480.0
+        }
+        if UserDefaults.standard.object(forKey: "calcDouble") != nil{
+            setupVars.calcDouble = UserDefaults.standard.bool(forKey: "calcDouble")
+        }
+        if UserDefaults.standard.object(forKey: "iterSel") != nil{
+            setupVars.iterSel = UserDefaults.standard.integer(forKey: "iterSel")
+        }
+        if UserDefaults.standard.object(forKey: "colorSel") != nil{
+            setupVars.colorSel = UserDefaults.standard.integer(forKey: "colorSel")
+        }
+        if UserDefaults.standard.object(forKey: "colorHue") != nil{
+            setupVars.colorHue = UserDefaults.standard.double(forKey: "colorHue")
+        }
+    }
+    
+    func saveCoord(){
+        UserDefaults.standard.set(X, forKey: "X")
+        UserDefaults.standard.set(Y, forKey: "Y")
+        UserDefaults.standard.set(Scale, forKey: "Scale")
+    }
+    
+    func saveSettings(){
+        UserDefaults.standard.set(setupVars.calcDouble, forKey: "calcDouble")
+        UserDefaults.standard.set(setupVars.iterSel, forKey: "iterSel")
+        UserDefaults.standard.set(setupVars.colorSel, forKey: "colorSel")
+        UserDefaults.standard.set(setupVars.colorHue, forKey: "colorHue")
+    }
+    
+    mutating func resetSetup(){
+        setupVars.calcDouble = true
+        setupVars.iterSel  = 0
+        setupVars.colorSel  = 2
+        setupVars.colorHue = 0.6
+        X = 0
+        Y = 0
+        Scale = 1.0
+    }
 }
 
 var mas:Global = Global()

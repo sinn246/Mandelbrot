@@ -59,6 +59,11 @@ struct SetupView: View {
                 }
                 .background(Image("Hue").resizable())
             }
+            Button(action: {
+                mas.resetSetup()
+            }){
+                Text("Reset Settings").padding()
+            }
         }.padding()
     }
 }
