@@ -239,7 +239,7 @@ class ZoomView: UIView {
                     p.layer.frame = UIRect(from: p.pic)
                 }
             }
-            mas.updater.flag.toggle()
+            mas.coordUpdater.flag.toggle()
             mas.saveCoord()
         }else{
             CATransaction.begin()
@@ -250,7 +250,7 @@ class ZoomView: UIView {
                     p.layer.frame = UIRect(from: p.pic)
                 }
             }
-            mas.updater.flag.toggle()
+            mas.coordUpdater.flag.toggle()
             CATransaction.commit()
         }
     }
