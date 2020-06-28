@@ -48,9 +48,17 @@ class MasPic {
         }
         DispatchQueue.global(qos: .default).async {
             if mas.setupVars.calcDouble{
-                calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                if mas.setupVars.calcZorder{
+                    calc_masD(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                }else{
+                    calc_masD_line(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                }
             }else{
-                calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                if mas.setupVars.calcZorder{
+                    calc_mas(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                }else{
+                    calc_mas_line(self.WX,self.WY,WZ,self.X0,self.Y0,self.Scale,block)
+                }
             }
         }
     }
@@ -259,10 +267,10 @@ struct TouchView: UIViewRepresentable {
     func updateUIView(_ uiView: Self.UIViewType, context: Self.Context){
         print("updateuiview called")
         if redrawer.flag {
+            mas.redrawer.flag = false
             print("redrawing")
             DispatchQueue.main.async {
                 uiView.SizeChanged()
-                mas.redrawer.flag = false
             }
         }
     }

@@ -44,7 +44,7 @@ struct ExportButton: View{
         .sheet(isPresented: $isSharePresented, onDismiss: {
             print("Dismiss")
         }, content: {
-            ActivityViewController(activityItems: [UIImage(cgImage: mas.lastImage!)])
+            ActivityViewController(activityItems: [UIImage(cgImage: mas.lastImage!), mas.JSONexport()])
         })
     }
 }
@@ -62,30 +62,40 @@ struct ActivityViewController: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
 }
 
+struct TimeDisplayer: View{
+    @EnvironmentObject var calcFinish:Updater
+    var body: some View{
+        Text(mas.calcTime > 0 ? "\(mas.calcTime) sec" : "")
+            .italic()
+            .foregroundColor(.white)
+            .shadow(color: .black, radius: 1)
+    }
+}
+
 ////////////////////////////
 
 
 struct ContentView: View {
-    @State var setup = false
+    @State var showSetup = false
+    
     var body: some View {
         ZStack{
-            TouchView()
-                .environmentObject(mas.redrawer)
+            TouchView().environmentObject(mas.redrawer)
                 .edgesIgnoringSafeArea(.all)
             
             VStack{
                 HStack{
-                    XY0View()
+                    XY0View().environmentObject(mas.coordUpdater)
                     Spacer()
                     Button(action: {
-                        self.setup.toggle()
+                        self.showSetup.toggle()
                     }){
                         Image(systemName: "gear")
                             .font(.title)
                             .shadow(color: .white, radius: 1)
                             .padding()
                     }
-                    .sheet(isPresented: $setup,
+                    .sheet(isPresented: $showSetup,
                            onDismiss: {
                             mas.WZ = mas.iters[mas.setupVars.iterSel]
                             print("Iter = \(mas.WZ)")
@@ -93,18 +103,21 @@ struct ContentView: View {
                             mas.saveSettings()
                     },
                            content: {
-                            SetupView()
-                                .environmentObject(mas.setupVars)
+                            SetupView(showSetup: self.$showSetup).environmentObject(mas.setupVars)
                     })
                 }
                 Spacer()
                 HStack{
-                    ExportButton()
-                        .environmentObject(mas.calcFinish)
                     Spacer()
-                    XY1View()
+                    TimeDisplayer().environmentObject(mas.calcFinish)
+                }
+                HStack{
+                    ExportButton().environmentObject(mas.calcFinish)
+                    Spacer()
+                    XY1View().environmentObject(mas.coordUpdater)
                 }
             }.padding()
+            
         }
     }
 }

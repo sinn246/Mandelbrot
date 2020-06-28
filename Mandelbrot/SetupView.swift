@@ -10,6 +10,7 @@ import SwiftUI
 
 struct SetupView: View {
     @EnvironmentObject var s:SetupVars
+    @Binding var showSetup:Bool
     
     var body: some View{
         VStack(alignment: .center, spacing: 20){
@@ -26,8 +27,19 @@ struct SetupView: View {
                         .italic()
                 }
             }
-            Toggle(isOn: $s.calcDouble){
-                Text("Use double-precision floating point")
+            VStack(alignment: .center, spacing: 5){
+                Toggle(isOn: $s.calcDouble){
+                    Text("Use double-precision floating point")
+                }
+                Toggle(isOn: $s.calcZorder){
+                    Text("Use Z-ordering display algorithm")
+                }
+                HStack{
+                    Spacer()
+                    Text("Turning on will take a little longer to compute")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
             VStack(alignment: .center, spacing: 5){
                 Text("Max Iteration")
@@ -60,7 +72,15 @@ struct SetupView: View {
                 .background(Image("Hue").resizable())
             }
             Button(action: {
+                if mas.getClipboardData(reallyloadData: true){
+                    self.showSetup.toggle()
+                }
+            }){
+                Text("Copy settings from clipboard").padding()
+            }.disabled(!mas.isClipboardAvailable)
+            Button(action: {
                 mas.resetSetup()
+                self.showSetup.toggle()
             }){
                 Text("Reset Settings").padding()
             }
@@ -70,7 +90,7 @@ struct SetupView: View {
 
 struct SetupView_Previews: PreviewProvider {
     static var previews: some View {
-        SetupView()
+        SetupView(showSetup: .constant(true))
             .environmentObject(mas.setupVars)
     }
 }

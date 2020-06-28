@@ -12,3 +12,6 @@
 "Coloring mode" = "彩色法";
 "Coloring base Hue" = "初期色相";
 "Reset Settings" = "設定をリセット";
+"Use Z-ordering display algorithm" = "Zオーダーで表示する";
+"Turning on will take a little longer to compute" = "オンにすると少し余計に時間がかかります";
+"Copy settings from clipboard" = "クリップボードから設定を取り込む";
