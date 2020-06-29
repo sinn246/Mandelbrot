@@ -41,11 +41,11 @@ struct ExportButton: View{
                 .disabled(!calcFinish.flag)
                 .padding()
         }.disabled(!calcFinish.flag)
-        .sheet(isPresented: $isSharePresented, onDismiss: {
-            print("Dismiss")
-        }, content: {
-            ActivityViewController(activityItems: [UIImage(cgImage: mas.lastImage!), mas.JSONexport()])
-        })
+            .sheet(isPresented: $isSharePresented, onDismiss: {
+                print("Dismiss")
+            }, content: {
+                ActivityViewController(activityItems: [UIImage(cgImage: mas.lastImage!), mas.JSONexport()])
+            })
     }
 }
 
@@ -62,22 +62,31 @@ struct ActivityViewController: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
 }
 
+
 struct TimeDisplayer: View{
-    @EnvironmentObject var calcFinish:Updater
+    @EnvironmentObject var showTime:Updater
     var body: some View{
         Text(mas.calcTime > 0 ? "\(mas.calcTime) sec" : "")
             .italic()
+            .bold()
+            .font(.title)
             .foregroundColor(.white)
             .shadow(color: .black, radius: 1)
+            .animation(.easeIn)
+            .transition(.slide)
+            .onAppear {
+                Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { timer in
+                    self.showTime.flag.toggle()
+                }
+        }
     }
 }
 
 ////////////////////////////
 
-
 struct ContentView: View {
     @State var showSetup = false
-    
+    @EnvironmentObject var showTime:Updater
     var body: some View {
         ZStack{
             TouchView().environmentObject(mas.redrawer)
@@ -109,7 +118,9 @@ struct ContentView: View {
                 Spacer()
                 HStack{
                     Spacer()
-                    TimeDisplayer().environmentObject(mas.calcFinish)
+                    if showTime.flag {
+                        TimeDisplayer().environmentObject(mas.showTime)
+                    }
                 }
                 HStack{
                     ExportButton().environmentObject(mas.calcFinish)
@@ -117,7 +128,6 @@ struct ContentView: View {
                     XY1View().environmentObject(mas.coordUpdater)
                 }
             }.padding()
-            
         }
     }
 }

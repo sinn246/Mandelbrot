@@ -100,7 +100,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
-        [Bridge calcStartStop:FALSE time:0.0];
+        [Bridge calcStart];
     }
     
     BOOL stop = false;
@@ -237,7 +237,7 @@ void calc_mas(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^up
     CGImageRelease(image);
     CGDataProviderRelease(provider);
     if(WZ>100){
-        [Bridge calcStartStop:TRUE time:finish_calc()];
+        [Bridge calcFinishWithTime: finish_calc()];
     }
 abort:
     free(iTo); free(iFrom);
@@ -255,7 +255,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
-        [Bridge calcStartStop:FALSE time:0.0];
+        [Bridge calcStart];
     }
     
     BOOL stop = false;
@@ -388,7 +388,7 @@ void calc_masD(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL (^u
     CGImageRelease(image);
     CGDataProviderRelease(provider);
     if(WZ>100){
-        [Bridge calcStartStop:TRUE time:finish_calc()];
+        [Bridge calcFinishWithTime: finish_calc()];
     }
 abort:
     free(iTo); free(iFrom);
@@ -403,7 +403,7 @@ void calc_masD_line(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOO
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
-        [Bridge calcStartStop:FALSE time:0.0];
+        [Bridge calcStart];
     }
     
     int iFrom,iTo;
@@ -519,7 +519,7 @@ void calc_masD_line(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOO
     CGImageRelease(image);
     CGDataProviderRelease(provider);
     if(WZ>100){
-        [Bridge calcStartStop:TRUE time:finish_calc()];
+        [Bridge calcFinishWithTime: finish_calc()];
     }
 abort:
     free(base);
@@ -532,7 +532,7 @@ void calc_mas_line(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     CGColorSpaceRef colorSpace = CGColorSpaceCreateDeviceRGB();
     start_calc();
     if(WZ > 100){
-        [Bridge calcStartStop:FALSE time:0.0];
+        [Bridge calcStart];
     }
     
     int iFrom,iTo;
@@ -648,7 +648,7 @@ void calc_mas_line(long WX,long WY,long WZ,double X0,double Y0,double Scale,BOOL
     CGImageRelease(image);
     CGDataProviderRelease(provider);
     if(WZ>100){
-        [Bridge calcStartStop:TRUE time:finish_calc()];
+        [Bridge calcFinishWithTime: finish_calc()];
     }
 abort:
     free(base);

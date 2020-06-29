@@ -35,6 +35,7 @@ struct Global{
     var coordUpdater = Updater()
     var redrawer = Updater()
     var calcFinish = Updater()
+    var showTime = Updater()
     var setupVars = SetupVars()
     
     var pics:[(pic:MasPic,layer:CALayer)] = []
@@ -154,18 +155,28 @@ var mas:Global = Global()
 
 
 @objcMembers class Bridge:NSObject {
-    @objc class func calcStartStop(_ f:Bool,time:Double){
-        mas.calcTime = time
+    @objc class func calcStart(){
         DispatchQueue.main.async {
-            mas.calcFinish.flag = f
+            mas.calcFinish.flag = false
         }
     }
+    
+    @objc class func calcFinishWithTime(_ time:Double){
+        mas.calcTime = time
+        DispatchQueue.main.async {
+            mas.calcFinish.flag = true
+            mas.showTime.flag = true
+        }
+    }
+    
     @objc class func setLastImage(_ img:CGImage){
         mas.lastImage = img
     }
+    
     @objc class func getColorMode()->Int{
         return mas.setupVars.colorSel
     }
+    
     @objc class func getColorHue()->Double{
         return mas.setupVars.colorHue
     }
