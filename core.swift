@@ -9,6 +9,7 @@
 import SwiftUI
 import Combine
 
+
 final class Updater : ObservableObject {
     @Published var flag:Bool = false
 }
@@ -43,7 +44,7 @@ struct Global{
     
     let iters = [1000,3000,10000,30000]
     let colorIters = ["linear","log","mixed","RGB"]
-
+    
     init() {
         X = UserDefaults.standard.double(forKey: "X")
         Y = UserDefaults.standard.double(forKey: "Y")
@@ -95,7 +96,7 @@ struct Global{
         Scale = 1.0
     }
     
-
+    
     struct JSONformat: Codable{
         var X:Double
         var Y:Double
@@ -103,7 +104,7 @@ struct Global{
         var WY:Double
         var Z:Int
     }
-
+    
     func JSONexport()->String{
         let out = JSONformat(X: X, Y: Y, WX: Double(WX)*Scale, WY: Double(WY)*Scale, Z: WZ)
         do{

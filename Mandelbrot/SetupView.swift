@@ -73,14 +73,14 @@ struct SetupView: View {
             }
             Button(action: {
                 if mas.getClipboardData(reallyloadData: true){
-                    self.showSetup.toggle()
+                    self.showSetup = false
                 }
             }){
                 Text("Copy settings from clipboard").padding()
             }.disabled(!mas.isClipboardAvailable)
             Button(action: {
                 mas.resetSetup()
-                self.showSetup.toggle()
+                self.showSetup = false
             }){
                 Text("Reset Settings").padding()
             }

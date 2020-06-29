@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+// UI parts in ContentView
 
 struct XY0View: View{
     @EnvironmentObject var u:Updater
@@ -63,8 +64,11 @@ struct ActivityViewController: UIViewControllerRepresentable {
 }
 
 
+
 struct TimeDisplayer: View{
     @EnvironmentObject var showTime:Updater
+    @State var timer:Timer? = nil
+
     var body: some View{
         Text(mas.calcTime > 0 ? "\(mas.calcTime) sec" : "")
             .italic()
@@ -75,29 +79,40 @@ struct TimeDisplayer: View{
             .animation(.easeIn)
             .transition(.slide)
             .onAppear {
-                Timer.scheduledTimer(withTimeInterval: 3, repeats: false) { timer in
-                    self.showTime.flag.toggle()
+                // 画面変更連打やスリープその他の理由でタイマーが呼ばれすぎたり呼ばれなかったり
+                // したとき画面が残るバグが発生
+                // repeatsをtrueにして手動でタイマーをinvalidateしたらうまく動くように
+                print("TimeDisplayer:onAppear")
+                self.timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true){ timer in
+                    self.showTime.flag = false
                 }
-        }
+            
+            }
+            .onDisappear(){
+                print("TimeDisplayer:onDisappear")
+                self.timer?.invalidate()
+            }
     }
 }
 
-////////////////////////////
+// ContentView itself
 
 struct ContentView: View {
     @State var showSetup = false
     @EnvironmentObject var showTime:Updater
     var body: some View {
         ZStack{
+            // First layer
             TouchView().environmentObject(mas.redrawer)
                 .edgesIgnoringSafeArea(.all)
             
+            // Second layer
             VStack{
                 HStack{
                     XY0View().environmentObject(mas.coordUpdater)
                     Spacer()
                     Button(action: {
-                        self.showSetup.toggle()
+                        self.showSetup = true
                     }){
                         Image(systemName: "gear")
                             .font(.title)
