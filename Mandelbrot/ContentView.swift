@@ -28,6 +28,8 @@ struct XY1View: View{
     }
 }
 
+// Export activity
+
 struct ExportButton: View{
     @EnvironmentObject var calcFinish:Updater
     @State private var isSharePresented: Bool = false
@@ -63,7 +65,7 @@ struct ActivityViewController: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: UIViewControllerRepresentableContext<ActivityViewController>) {}
 }
 
-
+// Time display with animation
 
 struct TimeDisplayer: View{
     @EnvironmentObject var showTime:Updater
@@ -86,7 +88,6 @@ struct TimeDisplayer: View{
                 self.timer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true){ timer in
                     self.showTime.flag = false
                 }
-            
             }
             .onDisappear(){
                 print("TimeDisplayer:onDisappear")
@@ -149,6 +150,6 @@ struct ContentView: View {
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        ContentView().environmentObject(mas.showTime)
     }
 }
